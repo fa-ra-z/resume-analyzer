@@ -2,3 +2,5 @@ streamlit
 google-generativeai
 pypdf
 python-dotenv
+plotly
+pandas
