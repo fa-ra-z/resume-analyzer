@@ -2,7 +2,6 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 
-# Import our own modules
 from modules.pdf_parser import extract_text_from_pdf
 from modules.analyzer import (
     analyze_resume,
@@ -13,7 +12,7 @@ from modules.analyzer import (
 from modules.ats_scorer import calculate_rule_based_ats
 
 # ─────────────────────────────────────────────
-# PAGE CONFIGURATION (must be the FIRST st command)
+# PAGE CONFIGURATION
 # ─────────────────────────────────────────────
 st.set_page_config(
     page_title="ResumeIQ — AI Resume Analyzer",
@@ -30,86 +29,279 @@ st.markdown("""
 
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
+    background-color: #0a0a0f;
 }
 
-/* Score Cards */
-.score-card {
-    background: linear-gradient(135deg, #1e1e2e, #2d2d44);
-    border: 1px solid #3d3d5c;
-    border-radius: 16px;
-    padding: 24px;
-    text-align: center;
-    margin: 8px 0;
+[data-testid="stSidebar"] {
+    background: #0f0f18 !important;
+    border-right: 1px solid #1e1e30 !important;
 }
-.score-number {
-    font-size: 2.8rem;
-    font-weight: 700;
+[data-testid="stSidebar"] * { color: #94a3b8; }
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 { color: #e2e8f0; }
+[data-testid="stSidebarContent"] { padding: 1.5rem 1rem; }
+
+.main .block-container {
+    background: #0a0a0f;
+    padding: 2rem 2.5rem;
+    max-width: 1100px;
+}
+
+.score-card {
+    background: #0f0f18;
+    border: 1px solid #1e1e30;
+    border-radius: 14px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+}
+.score-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
     background: linear-gradient(90deg, #6366f1, #a78bfa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    line-height: 1.2;
+}
+.score-num {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    line-height: 1.1;
+    margin: 8px 0 4px;
 }
 .score-label {
-    color: #94a3b8;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #4b5563;
+    font-weight: 500;
+}
+.score-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+}
+
+.section-hdr {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 28px 0 14px;
+}
+.section-hdr-line {
+    flex: 1;
+    height: 1px;
+    background: #1e1e30;
+}
+.section-hdr-text {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6366f1;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin: 3px;
+}
+.tag-green  { background: #052e16; color: #4ade80; border: 1px solid #14532d; }
+.tag-red    { background: #1c0a0a; color: #f87171; border: 1px solid #450a0a; }
+.tag-purple { background: #1e1b4b; color: #a78bfa; border: 1px solid #312e81; }
+.tag-amber  { background: #1c1002; color: #fbbf24; border: 1px solid #451a03; }
+.tag-blue   { background: #0c1a3a; color: #93c5fd; border: 1px solid #1e3a5f; }
+
+.sugg-card {
+    background: #0a0a0f;
+    border: 1px solid #1e1e30;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+.sugg-num {
+    width: 22px; height: 22px;
+    background: #1e1b4b;
+    color: #a78bfa;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.sugg-area {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #a78bfa;
+    margin-bottom: 3px;
+}
+.sugg-text {
+    font-size: 0.8rem;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.q-card {
+    background: #0f0f18;
+    border: 1px solid #1e1e30;
+    border-left: 3px solid #6366f1;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+}
+.q-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.q-text {
     font-size: 0.85rem;
-    margin-top: 6px;
+    color: #cbd5e1;
+    line-height: 1.6;
 }
+.diff-easy   { color: #4ade80; font-size: 0.72rem; font-weight: 600; }
+.diff-medium { color: #fbbf24; font-size: 0.72rem; font-weight: 600; }
+.diff-hard   { color: #f87171; font-size: 0.72rem; font-weight: 600; }
 
-/* Tags */
-.tag-green {
-    background: #064e3b; color: #6ee7b7;
-    padding: 5px 14px; border-radius: 20px;
-    font-size: 0.8rem; margin: 3px;
-    display: inline-block;
+.feedback-box {
+    background: #0c1526;
+    border: 1px solid #1e3a5f;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-top: 10px;
 }
-.tag-red {
-    background: #450a0a; color: #fca5a5;
-    padding: 5px 14px; border-radius: 20px;
-    font-size: 0.8rem; margin: 3px;
-    display: inline-block;
+.fb-score {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 10px;
 }
-.tag-blue {
-    background: #1e3a5f; color: #93c5fd;
-    padding: 5px 14px; border-radius: 20px;
-    font-size: 0.8rem; margin: 3px;
-    display: inline-block;
+.fb-row {
+    margin-bottom: 8px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #94a3b8;
 }
+.fb-row strong { color: #e2e8f0; }
 
-/* Section Headers */
-.section-title {
-    font-size: 1.2rem;
+.job-card {
+    background: #0f0f18;
+    border: 1px solid #1e1e30;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.job-pct {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #a78bfa;
+    min-width: 64px;
+    text-align: right;
+}
+.job-name {
+    font-size: 0.95rem;
     font-weight: 600;
     color: #e2e8f0;
-    border-bottom: 2px solid #6366f1;
-    padding-bottom: 8px;
-    margin: 28px 0 16px 0;
+    margin-bottom: 4px;
+}
+.job-reason {
+    font-size: 0.78rem;
+    color: #6b7280;
 }
 
-/* Question Cards */
-.q-card {
-    background: #1e1e2e;
-    border-left: 4px solid #6366f1;
-    border-radius: 8px;
-    padding: 16px;
-    margin: 10px 0;
-    color: #e2e8f0;
+[data-testid="stFileUploader"] {
+    border: 1px dashed #312e81 !important;
+    border-radius: 12px !important;
+    background: #0a0a14 !important;
 }
 
-/* Feedback Box */
-.feedback-box {
-    background: #1a2744;
-    border: 1px solid #3b82f6;
-    border-radius: 12px;
-    padding: 20px;
-    margin: 12px 0;
-    color: #e2e8f0;
+.stButton > button {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 10px 22px !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.02em !important;
+    transition: opacity 0.2s !important;
 }
+.stButton > button:hover { opacity: 0.88 !important; }
+
+.stTextInput > div > div > input {
+    background: #0f0f18 !important;
+    border: 1px solid #1e1e30 !important;
+    border-radius: 8px !important;
+    color: #e2e8f0 !important;
+    font-size: 0.85rem !important;
+}
+.stTextInput > div > div > input:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
+}
+
+.streamlit-expanderHeader {
+    background: #0f0f18 !important;
+    border: 1px solid #1e1e30 !important;
+    border-radius: 10px !important;
+    color: #a78bfa !important;
+    font-size: 0.82rem !important;
+}
+
+.stTabs [data-baseweb="tab-list"] {
+    background: #0f0f18;
+    border-radius: 10px;
+    padding: 4px;
+    gap: 4px;
+    border: 1px solid #1e1e30;
+}
+.stTabs [data-baseweb="tab"] {
+    background: transparent !important;
+    border-radius: 8px !important;
+    color: #6b7280 !important;
+    font-size: 0.82rem !important;
+    padding: 6px 16px !important;
+}
+.stTabs [aria-selected="true"] {
+    background: #1e1b4b !important;
+    color: #a78bfa !important;
+    font-weight: 600 !important;
+}
+
+[data-testid="stMetricValue"] {
+    color: #a78bfa !important;
+    font-size: 1.6rem !important;
+    font-weight: 700 !important;
+}
+[data-testid="stMetricLabel"] {
+    color: #4b5563 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #0a0a0f; }
+::-webkit-scrollbar-thumb { background: #1e1e30; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #6366f1; }
 </style>
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
-# SESSION STATE SETUP
-# (Stores data between button clicks)
+# SESSION STATE
 # ─────────────────────────────────────────────
 if "resume_text" not in st.session_state:
     st.session_state.resume_text = ""
@@ -130,7 +322,6 @@ with st.sidebar:
     st.markdown("*AI-powered resume analysis & interview prep*")
     st.divider()
 
-    # Navigation
     page = st.radio("📌 Go to", [
         "📄 Resume Analysis",
         "💼 Job Role Prediction",
@@ -139,16 +330,13 @@ with st.sidebar:
 
     st.divider()
 
-    # Target job role input
     target_role = st.text_input(
         "🎯 Target Job Role",
         placeholder="e.g. Data Analyst, SDE"
     )
 
-    # PDF Upload
     uploaded_file = st.file_uploader("📎 Upload Resume (PDF only)", type=["pdf"])
 
-    # When a file is uploaded, extract text immediately
     if uploaded_file is not None:
         if st.session_state.resume_text == "":
             with st.spinner("Reading PDF..."):
@@ -169,15 +357,12 @@ if page == "📄 Resume Analysis":
     st.title("📄 Resume Analysis")
     st.markdown("Upload your resume and get an instant AI-powered ATS analysis.")
 
-    # Show message if no file uploaded yet
     if not uploaded_file:
         st.info("👈 Please upload your resume PDF from the sidebar to begin.")
         st.stop()
 
-    # Analyze button
-    if st.button("🔍 Analyze My Resume", type="primary", use_container_width=False):
+    if st.button("🔍 Analyze My Resume", type="primary"):
         with st.spinner("🤖 Gemini AI is reading your resume... this takes ~10 seconds"):
-            # Call both Gemini and local ATS scorer
             st.session_state.analysis = analyze_resume(
                 st.session_state.resume_text,
                 target_role if target_role else "General"
@@ -187,46 +372,52 @@ if page == "📄 Resume Analysis":
                 target_role if target_role else "general"
             )
 
-    # Show results if analysis exists
     if st.session_state.analysis:
         data = st.session_state.analysis
         local = st.session_state.ats_local
 
-        # Handle API errors
         if "error" in data:
             st.error(f"❌ Error: {data['error']}")
             st.stop()
 
-        # ── Score Cards Row ──
-        st.markdown('<div class="section-title">📊 Your Scores</div>', unsafe_allow_html=True)
+        # ── Score Cards ──
+        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Your Scores</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            st.markdown(f"""<div class="score-card">
-                <div class="score-number">{data.get('ats_score', '?')}</div>
-                <div class="score-label">AI ATS Score</div>
+            st.markdown(f"""
+            <div class="score-card">
+                <div class="score-icon" style="background:#1e1b4b">🎯</div>
+                <div class="score-num">{data.get('ats_score', '?')}</div>
+                <div class="score-label">ATS Score</div>
             </div>""", unsafe_allow_html=True)
 
         with col2:
-            st.markdown(f"""<div class="score-card">
-                <div class="score-number">{local.get('rule_based_score', '?')}</div>
+            st.markdown(f"""
+            <div class="score-card">
+                <div class="score-icon" style="background:#052e16">🔑</div>
+                <div class="score-num">{local.get('rule_based_score', '?')}</div>
                 <div class="score-label">Keyword Score</div>
             </div>""", unsafe_allow_html=True)
 
         with col3:
-            st.markdown(f"""<div class="score-card">
-                <div class="score-number" style="font-size:1.8rem">{data.get('overall_rating', '?')}</div>
+            st.markdown(f"""
+            <div class="score-card">
+                <div class="score-icon" style="background:#1c1002">🏅</div>
+                <div class="score-num" style="font-size:1.6rem">{data.get('overall_rating', '?')}</div>
                 <div class="score-label">Overall Rating</div>
             </div>""", unsafe_allow_html=True)
 
         with col4:
-            st.markdown(f"""<div class="score-card">
-                <div class="score-number" style="font-size:1.8rem">{data.get('experience_level', '?')}</div>
+            st.markdown(f"""
+            <div class="score-card">
+                <div class="score-icon" style="background:#1c0a0a">👤</div>
+                <div class="score-num" style="font-size:1.6rem">{data.get('experience_level', '?')}</div>
                 <div class="score-label">Experience Level</div>
             </div>""", unsafe_allow_html=True)
 
-        # ── ATS Gauge Chart ──
-        st.markdown('<div class="section-title">🎯 ATS Compatibility Gauge</div>', unsafe_allow_html=True)
+        # ── ATS Gauge ──
+        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ ATS Compatibility Gauge</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
 
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
@@ -235,9 +426,9 @@ if page == "📄 Resume Analysis":
                 'axis': {'range': [0, 100], 'tickcolor': '#94a3b8'},
                 'bar': {'color': "#6366f1"},
                 'steps': [
-                    {'range': [0, 40],  'color': '#3b1a1a'},
-                    {'range': [40, 70], 'color': '#3b3a1a'},
-                    {'range': [70, 100],'color': '#1a3b1e'},
+                    {'range': [0, 40],   'color': '#3b1a1a'},
+                    {'range': [40, 70],  'color': '#3b3a1a'},
+                    {'range': [70, 100], 'color': '#1a3b1e'},
                 ],
                 'threshold': {
                     'value': 70,
@@ -259,17 +450,17 @@ if page == "📄 Resume Analysis":
         col_a, col_b = st.columns(2)
 
         with col_a:
-            st.markdown('<div class="section-title">✅ Strengths</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Strengths</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
             for item in data.get("strengths", []):
-                st.markdown(f'<span class="tag-green">✓ {item}</span>', unsafe_allow_html=True)
+                st.markdown(f'<span class="tag tag-green">✓ {item}</span>', unsafe_allow_html=True)
 
         with col_b:
-            st.markdown('<div class="section-title">⚠️ Weaknesses</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Weaknesses</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
             for item in data.get("weaknesses", []):
-                st.markdown(f'<span class="tag-red">✗ {item}</span>', unsafe_allow_html=True)
+                st.markdown(f'<span class="tag tag-red">✗ {item}</span>', unsafe_allow_html=True)
 
         # ── Missing Skills ──
-        st.markdown('<div class="section-title">🔍 Skills to Add to Your Resume</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Skills to Add</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
         st.caption("These keywords are missing — adding them increases your ATS score.")
 
         all_missing = list(set(
@@ -277,30 +468,36 @@ if page == "📄 Resume Analysis":
             local.get("missing_keywords", [])
         ))
         for skill in all_missing:
-            st.markdown(f'<span class="tag-blue">+ {skill}</span>', unsafe_allow_html=True)
+            st.markdown(f'<span class="tag tag-purple">+ {skill}</span>', unsafe_allow_html=True)
 
         # ── Formatting Issues ──
         if data.get("formatting_issues"):
-            st.markdown('<div class="section-title">📐 Formatting Issues</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Formatting Issues</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
             for issue in data.get("formatting_issues", []):
                 st.warning(f"⚠️ {issue}")
 
         # ── Improvement Suggestions ──
-        st.markdown('<div class="section-title">💡 How to Improve</div>', unsafe_allow_html=True)
-        for item in data.get("improvement_suggestions", []):
-            with st.expander(f"📌 {item.get('area', 'Suggestion')}"):
-                st.write(item.get("suggestion", ""))
+        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ How to Improve</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
+        for i, item in enumerate(data.get("improvement_suggestions", [])):
+            st.markdown(f"""
+            <div class="sugg-card">
+                <div class="sugg-num">{i+1}</div>
+                <div>
+                    <div class="sugg-area">{item.get('area', 'Suggestion')}</div>
+                    <div class="sugg-text">{item.get('suggestion', '')}</div>
+                </div>
+            </div>""", unsafe_allow_html=True)
 
-        # ── Contact Info Check ──
-        st.markdown('<div class="section-title">📋 Resume Checklist</div>', unsafe_allow_html=True)
+        # ── Resume Checklist ──
+        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Resume Checklist</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Email", "✅" if local.get("has_email") else "❌")
-        c2.metric("Phone", "✅" if local.get("has_phone") else "❌")
-        c3.metric("GitHub", "✅" if local.get("has_github") else "❌")
+        c1.metric("Email",    "✅" if local.get("has_email")    else "❌")
+        c2.metric("Phone",    "✅" if local.get("has_phone")    else "❌")
+        c3.metric("GitHub",   "✅" if local.get("has_github")   else "❌")
         c4.metric("LinkedIn", "✅" if local.get("has_linkedin") else "❌")
 
         # ── AI Summary ──
-        st.markdown('<div class="section-title">📝 AI Summary</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ AI Summary</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
         st.info(data.get("summary", "No summary available."))
 
 
@@ -332,7 +529,6 @@ elif page == "💼 Job Role Prediction":
         roles = result.get("predicted_roles", [])
 
         if roles:
-            # Bar chart of match percentages
             fig = px.bar(
                 x=[r["match_percentage"] for r in roles],
                 y=[r["role"] for r in roles],
@@ -351,21 +547,19 @@ elif page == "💼 Job Role Prediction":
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            # Cards for each role
+            st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Role Breakdown</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
+
             for i, role in enumerate(roles):
                 pct = role['match_percentage']
-                color = "#6ee7b7" if pct >= 75 else "#fbbf24" if pct >= 50 else "#f87171"
+                badge = "tag-green" if pct >= 75 else "tag-amber" if pct >= 50 else "tag-red"
                 st.markdown(f"""
-                <div class="q-card">
-                    <strong style="color:#a78bfa; font-size:1.1rem">
-                        #{i+1} {role['role']}
-                    </strong>
-                    <span class="tag-green" style="margin-left:10px">{pct}% match</span>
-                    <p style="color:#94a3b8; margin-top:8px; margin-bottom:0">
-                        {role['reason']}
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
+                <div class="job-card">
+                    <div>
+                        <div class="job-name">#{i+1} {role['role']}</div>
+                        <div class="job-reason">{role['reason']}</div>
+                    </div>
+                    <div class="job-pct">{pct}%</div>
+                </div>""", unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════
@@ -397,28 +591,24 @@ elif page == "🎤 Interview Practice":
             st.error(f"❌ {q_data['error']}")
             st.stop()
 
-        # Three tabs: Technical, Behavioral, HR
         tab1, tab2, tab3 = st.tabs(["⚙️ Technical", "🧠 Behavioral", "💬 HR Round"])
 
         # ── Technical Questions ──
         with tab1:
             st.markdown("Answer these questions and get instant AI feedback on your response.")
             for i, q in enumerate(q_data.get("technical_questions", [])):
-                # Difficulty badge color
                 diff = q.get("difficulty", "Medium")
-                diff_color = {"Easy": "#6ee7b7", "Medium": "#fbbf24", "Hard": "#f87171"}.get(diff, "#94a3b8")
+                diff_class = diff.lower()
 
                 st.markdown(f"""
                 <div class="q-card">
-                    <span style="color:{diff_color}; font-size:0.8rem">● {diff}</span>
-                    <span class="tag-blue" style="margin-left:8px">{q.get('topic','')}</span>
-                    <p style="margin-top:10px; margin-bottom:0">
-                        <strong>Q{i+1}:</strong> {q.get('question', '')}
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
+                    <div class="q-meta">
+                        <span class="diff-{diff_class}">{diff.upper()}</span>
+                        <span class="tag tag-blue">{q.get('topic', '')}</span>
+                    </div>
+                    <div class="q-text"><strong>Q{i+1}:</strong> {q.get('question', '')}</div>
+                </div>""", unsafe_allow_html=True)
 
-                # Answer box inside expander
                 with st.expander(f"✍️ Type your answer for Q{i+1}"):
                     user_answer = st.text_area(
                         "Your answer:",
@@ -434,20 +624,17 @@ elif page == "🎤 Interview Practice":
                                 fb = evaluate_answer(q.get("question", ""), user_answer)
                             if "error" not in fb:
                                 score = fb.get("score", 0)
-                                score_color = "#6ee7b7" if score >= 7 else "#fbbf24" if score >= 5 else "#f87171"
+                                score_color = "#4ade80" if score >= 7 else "#fbbf24" if score >= 5 else "#f87171"
                                 st.markdown(f"""
                                 <div class="feedback-box">
-                                    <h4 style="color:{score_color}; margin-top:0">
-                                        Score: {score}/10
-                                    </h4>
-                                    <p><strong>📝 Feedback:</strong> {fb.get('feedback','')}</p>
-                                    <p><strong>✅ What was good:</strong> {fb.get('what_was_good','')}</p>
-                                    <p><strong>📈 Improve this:</strong> {fb.get('what_to_improve','')}</p>
-                                    <p style="border-top:1px solid #3b82f6; padding-top:12px; margin-bottom:0">
-                                        <strong>💡 Model answer:</strong> {fb.get('sample_better_answer','')}
-                                    </p>
-                                </div>
-                                """, unsafe_allow_html=True)
+                                    <div class="fb-score" style="color:{score_color}">{score}/10</div>
+                                    <div class="fb-row"><strong>📝 Feedback:</strong> {fb.get('feedback', '')}</div>
+                                    <div class="fb-row"><strong>✅ What was good:</strong> {fb.get('what_was_good', '')}</div>
+                                    <div class="fb-row"><strong>📈 Improve this:</strong> {fb.get('what_to_improve', '')}</div>
+                                    <div class="fb-row" style="border-top:1px solid #1e3a5f;padding-top:10px;margin-top:4px">
+                                        <strong>💡 Model answer:</strong> {fb.get('sample_better_answer', '')}
+                                    </div>
+                                </div>""", unsafe_allow_html=True)
 
         # ── Behavioral Questions ──
         with tab2:
@@ -455,12 +642,11 @@ elif page == "🎤 Interview Practice":
             for i, q in enumerate(q_data.get("behavioral_questions", [])):
                 st.markdown(f"""
                 <div class="q-card">
-                    <span class="tag-blue">STAR Method</span>
-                    <p style="margin-top:10px; margin-bottom:0">
-                        <strong>Q{i+1}:</strong> {q.get('question', '')}
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
+                    <div class="q-meta">
+                        <span class="tag tag-amber">STAR Method</span>
+                    </div>
+                    <div class="q-text"><strong>Q{i+1}:</strong> {q.get('question', '')}</div>
+                </div>""", unsafe_allow_html=True)
 
                 with st.expander(f"✍️ Answer Q{i+1}"):
                     user_answer = st.text_area(
@@ -477,14 +663,17 @@ elif page == "🎤 Interview Practice":
                                 fb = evaluate_answer(q.get("question", ""), user_answer)
                             if "error" not in fb:
                                 score = fb.get("score", 0)
-                                score_color = "#6ee7b7" if score >= 7 else "#fbbf24" if score >= 5 else "#f87171"
+                                score_color = "#4ade80" if score >= 7 else "#fbbf24" if score >= 5 else "#f87171"
                                 st.markdown(f"""
                                 <div class="feedback-box">
-                                    <h4 style="color:{score_color}; margin-top:0">Score: {score}/10</h4>
-                                    <p><strong>📝 Feedback:</strong> {fb.get('feedback','')}</p>
-                                    <p style="margin-bottom:0"><strong>💡 Better answer:</strong> {fb.get('sample_better_answer','')}</p>
-                                </div>
-                                """, unsafe_allow_html=True)
+                                    <div class="fb-score" style="color:{score_color}">{score}/10</div>
+                                    <div class="fb-row"><strong>📝 Feedback:</strong> {fb.get('feedback', '')}</div>
+                                    <div class="fb-row"><strong>✅ What was good:</strong> {fb.get('what_was_good', '')}</div>
+                                    <div class="fb-row"><strong>📈 Improve this:</strong> {fb.get('what_to_improve', '')}</div>
+                                    <div class="fb-row" style="border-top:1px solid #1e3a5f;padding-top:10px;margin-top:4px">
+                                        <strong>💡 Model answer:</strong> {fb.get('sample_better_answer', '')}
+                                    </div>
+                                </div>""", unsafe_allow_html=True)
 
         # ── HR Questions ──
         with tab3:
@@ -492,6 +681,8 @@ elif page == "🎤 Interview Practice":
             for i, q in enumerate(q_data.get("hr_questions", [])):
                 st.markdown(f"""
                 <div class="q-card">
-                    <strong>Q{i+1}:</strong> {q}
-                </div>
-                """, unsafe_allow_html=True)
+                    <div class="q-meta">
+                        <span class="tag tag-purple">HR Round</span>
+                    </div>
+                    <div class="q-text"><strong>Q{i+1}:</strong> {q}</div>
+                </div>""", unsafe_allow_html=True)
