@@ -349,7 +349,7 @@ with st.sidebar:
             st.success("✅ Resume ready!")
 
     st.divider()
-    st.caption("Built for Tata Technologies InnoVent-27")
+    st.caption("Built by S.F.A.")
 
 
 # ═══════════════════════════════════════════════════════
