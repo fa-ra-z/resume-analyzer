@@ -1340,7 +1340,7 @@ elif page == "✨ Builder":
 # ─────────────────────────────────────────────
 # FOOTER
 # ─────────────────────────────────────────────
-st.markdown('<div class="footer-credit">Built by S.F.A. · Powered by Gemini AI</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer-credit">Built by S.F.A.</div>', unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # FORCE-REMOVE STREAMLIT CLOUD BADGES (runs continuously)
