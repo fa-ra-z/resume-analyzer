@@ -90,21 +90,21 @@ Respond ONLY with valid JSON, no extra text:
 }}
 """
 RESUME_OPTIMIZER_PROMPT = """
-You are an expert ATS resume writer and career coach.
+You are an ATS keyword specialist. Your ONLY job is to inject missing keywords into the resume naturally.
 
-Below is a candidate's raw resume text and their target job role.
-Your job is to:
-1. Rewrite and improve ALL content (summary, bullets, skills)
-2. Add relevant missing keywords for the target role
-3. Make every bullet point start with a strong action verb
-4. Quantify achievements wherever possible (add realistic estimates if exact numbers are missing)
-5. Return structured data so it can be rendered into a PDF
+Rules:
+- DO NOT rewrite sentences completely
+- DO NOT change the structure or format
+- DO NOT change any existing content that is already good
+- ONLY add missing keywords naturally into existing bullets, skills section, or summary
+- Keep the original tone and wording as much as possible
+- Just slip the missing keywords in where they fit naturally
 
 Raw Resume Text:
 {resume_text}
 
 Target Job Role: {job_role}
-Missing Keywords to Add: {missing_keywords}
+Keywords to inject: {missing_keywords}
 
 Respond ONLY in this exact JSON format with no extra text:
 {{
@@ -115,38 +115,37 @@ Respond ONLY in this exact JSON format with no extra text:
   "github": "<github url if present, else empty string>",
   "location": "<city/location if present, else empty string>",
   "target_role": "{job_role}",
-  "summary": "<3-4 sentence powerful professional summary with keywords>",
-  "skills": ["<skill1>", "<skill2>", "<skill3>", "<skill4>", "<skill5>", "<skill6>", "<skill7>", "<skill8>", "<skill9>", "<skill10>", "<skill11>", "<skill12>"],
+  "summary": "<original summary with missing keywords injected naturally, minimal changes>",
+  "skills": ["<all original skills plus the missing keywords added>"],
   "experience": [
     {{
-      "title": "<job title>",
-      "company": "<company name>",
-      "duration": "<date range e.g. Jun 2022 – Present>",
+      "title": "<exact original job title>",
+      "company": "<exact original company name>",
+      "duration": "<exact original date range>",
       "bullets": [
-        "<rewritten bullet with action verb and metric>",
-        "<rewritten bullet with action verb and metric>",
-        "<rewritten bullet with action verb and metric>"
+        "<original bullet, only add keyword if it fits naturally>",
+        "<original bullet, only add keyword if it fits naturally>"
       ]
     }}
   ],
   "projects": [
     {{
-      "name": "<project name>",
-      "tech": "<tech stack used>",
+      "name": "<exact original project name>",
+      "tech": "<original tech stack, add missing keywords here if relevant>",
       "bullets": [
-        "<rewritten bullet>",
-        "<rewritten bullet>"
+        "<original bullet with keyword injected only if natural>",
+        "<original bullet with keyword injected only if natural>"
       ]
     }}
   ],
   "education": [
     {{
-      "degree": "<degree and field>",
-      "institution": "<college/university name>",
-      "year": "<graduation year or range>",
-      "grade": "<CGPA or percentage if mentioned>"
+      "degree": "<exact original degree>",
+      "institution": "<exact original institution>",
+      "year": "<exact original year>",
+      "grade": "<exact original grade>"
     }}
   ],
-  "certifications": ["<cert1>", "<cert2>"]
+  "certifications": ["<original certs unchanged>"]
 }}
 """
