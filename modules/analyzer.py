@@ -8,7 +8,8 @@ from prompts.templates import (
     RESUME_ANALYSIS_PROMPT,
     JOB_ROLE_PREDICTION_PROMPT,
     INTERVIEW_QUESTIONS_PROMPT,
-    ANSWER_FEEDBACK_PROMPT
+    ANSWER_FEEDBACK_PROMPT,
+    RESUME_OPTIMIZER_PROMPT
 )
 
 # Load the API key from .env file
@@ -84,5 +85,15 @@ def evaluate_answer(question: str, answer: str) -> dict:
     prompt = ANSWER_FEEDBACK_PROMPT.format(
         question=question,
         answer=answer
+    )
+    return call_gemini(prompt)
+    from prompts.templates import RESUME_OPTIMIZER_PROMPT  # add to existing import
+
+def optimize_resume(resume_text: str, job_role: str, missing_keywords: list) -> dict:
+    """Rewrites full resume content for ATS and returns structured data."""
+    prompt = RESUME_OPTIMIZER_PROMPT.format(
+        resume_text=resume_text[:5000],
+        job_role=job_role,
+        missing_keywords=", ".join(missing_keywords[:15])
     )
     return call_gemini(prompt)

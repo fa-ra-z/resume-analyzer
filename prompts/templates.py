@@ -89,3 +89,64 @@ Respond ONLY with valid JSON, no extra text:
   "sample_better_answer": "<a short model answer they can learn from>"
 }}
 """
+RESUME_OPTIMIZER_PROMPT = """
+You are an expert ATS resume writer and career coach.
+
+Below is a candidate's raw resume text and their target job role.
+Your job is to:
+1. Rewrite and improve ALL content (summary, bullets, skills)
+2. Add relevant missing keywords for the target role
+3. Make every bullet point start with a strong action verb
+4. Quantify achievements wherever possible (add realistic estimates if exact numbers are missing)
+5. Return structured data so it can be rendered into a PDF
+
+Raw Resume Text:
+{resume_text}
+
+Target Job Role: {job_role}
+Missing Keywords to Add: {missing_keywords}
+
+Respond ONLY in this exact JSON format with no extra text:
+{{
+  "name": "<full name from resume>",
+  "email": "<email from resume>",
+  "phone": "<phone from resume>",
+  "linkedin": "<linkedin url if present, else empty string>",
+  "github": "<github url if present, else empty string>",
+  "location": "<city/location if present, else empty string>",
+  "target_role": "{job_role}",
+  "summary": "<3-4 sentence powerful professional summary with keywords>",
+  "skills": ["<skill1>", "<skill2>", "<skill3>", "<skill4>", "<skill5>", "<skill6>", "<skill7>", "<skill8>", "<skill9>", "<skill10>", "<skill11>", "<skill12>"],
+  "experience": [
+    {{
+      "title": "<job title>",
+      "company": "<company name>",
+      "duration": "<date range e.g. Jun 2022 – Present>",
+      "bullets": [
+        "<rewritten bullet with action verb and metric>",
+        "<rewritten bullet with action verb and metric>",
+        "<rewritten bullet with action verb and metric>"
+      ]
+    }}
+  ],
+  "projects": [
+    {{
+      "name": "<project name>",
+      "tech": "<tech stack used>",
+      "bullets": [
+        "<rewritten bullet>",
+        "<rewritten bullet>"
+      ]
+    }}
+  ],
+  "education": [
+    {{
+      "degree": "<degree and field>",
+      "institution": "<college/university name>",
+      "year": "<graduation year or range>",
+      "grade": "<CGPA or percentage if mentioned>"
+    }}
+  ],
+  "certifications": ["<cert1>", "<cert2>"]
+}}
+"""

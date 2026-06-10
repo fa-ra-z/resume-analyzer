@@ -7,8 +7,10 @@ from modules.analyzer import (
     analyze_resume,
     predict_job_roles,
     generate_interview_questions,
-    evaluate_answer
+    evaluate_answer,
+    optimize_resume
 )
+from modules.resume_builder import build_resume_pdf
 from modules.ats_scorer import calculate_rule_based_ats
 
 # ─────────────────────────────────────────────
@@ -325,7 +327,8 @@ with st.sidebar:
     page = st.radio("📌 Go to", [
         "📄 Resume Analysis",
         "💼 Job Role Prediction",
-        "🎤 Interview Practice"
+        "🎤 Interview Practice",
+        "✨ ATS Resume Builder"
     ])
 
     st.divider()
@@ -686,3 +689,145 @@ elif page == "🎤 Interview Practice":
                     </div>
                     <div class="q-text"><strong>Q{i+1}:</strong> {q}</div>
                 </div>""", unsafe_allow_html=True)
+# ═══════════════════════════════════════════════════════
+# PAGE 4 — ATS RESUME BUILDER
+# ═══════════════════════════════════════════════════════
+elif page == "✨ ATS Resume Builder":
+
+    st.title("✨ ATS Resume Builder")
+    st.markdown("AI rewrites your entire resume optimized for your target role — then generates a downloadable PDF.")
+
+    if not uploaded_file:
+        st.info("👈 Please upload your resume PDF from the sidebar first.")
+        st.stop()
+
+    if not target_role:
+        st.warning("⚠️ Please enter a **Target Job Role** in the sidebar before optimizing.")
+        st.stop()
+
+    # Show what will happen
+    st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ What AI Will Do</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("""
+        <div class="sugg-card">
+            <div class="sugg-num">1</div>
+            <div>
+                <div class="sugg-area">Rewrite Content</div>
+                <div class="sugg-text">Every bullet rewritten with strong action verbs and quantified results.</div>
+            </div>
+        </div>""", unsafe_allow_html=True)
+    with col2:
+        st.markdown("""
+        <div class="sugg-card">
+            <div class="sugg-num">2</div>
+            <div>
+                <div class="sugg-area">Inject Keywords</div>
+                <div class="sugg-text">Missing ATS keywords for your target role added naturally throughout.</div>
+            </div>
+        </div>""", unsafe_allow_html=True)
+    with col3:
+        st.markdown("""
+        <div class="sugg-card">
+            <div class="sugg-num">3</div>
+            <div>
+                <div class="sugg-area">Generate PDF</div>
+                <div class="sugg-text">Clean professional PDF ready to download and submit to recruiters.</div>
+            </div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("")
+
+    # Get missing keywords from analysis if it exists
+    missing_kw = []
+    if st.session_state.analysis:
+        missing_kw = st.session_state.analysis.get("missing_skills", [])
+    if st.session_state.ats_local:
+        missing_kw += st.session_state.ats_local.get("missing_keywords", [])
+    missing_kw = list(set(missing_kw))
+
+    if missing_kw:
+        st.caption(f"📌 Keywords to inject: " + "  ".join([f"`{k}`" for k in missing_kw[:8]]))
+    else:
+        st.caption("💡 Run Resume Analysis first to detect missing keywords automatically.")
+
+    # Optimize button
+    if st.button("🚀 Optimize & Generate PDF", type="primary"):
+        with st.spinner("🤖 AI is rewriting your resume... this takes 15–20 seconds"):
+            optimized = optimize_resume(
+                st.session_state.resume_text,
+                target_role,
+                missing_kw
+            )
+            st.session_state.optimized_resume = optimized
+
+    # Show result
+    if "optimized_resume" in st.session_state and st.session_state.optimized_resume:
+        data = st.session_state.optimized_resume
+
+        if "error" in data:
+            st.error(f"❌ Error: {data['error']}")
+            st.stop()
+
+        st.success("✅ Resume optimized successfully!")
+
+        # ── Preview the rewritten content ──
+        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Preview — Rewritten Content</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
+
+        tab1, tab2, tab3, tab4 = st.tabs(["📝 Summary", "🛠 Skills", "💼 Experience", "🔨 Projects"])
+
+        with tab1:
+            st.markdown(f"""
+            <div class="sugg-card" style="display:block">
+                <div class="sugg-text" style="font-size:0.9rem;line-height:1.7;color:#e2e8f0">
+                    {data.get('summary', '')}
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+        with tab2:
+            skills = data.get("skills", [])
+            for skill in skills:
+                st.markdown(f'<span class="tag tag-purple">✓ {skill}</span>', unsafe_allow_html=True)
+
+        with tab3:
+            for exp in data.get("experience", []):
+                st.markdown(f"""
+                <div class="q-card">
+                    <div class="q-meta">
+                        <span class="tag tag-blue">{exp.get('company','')}</span>
+                        <span class="tag tag-amber">{exp.get('duration','')}</span>
+                    </div>
+                    <div class="q-text" style="font-weight:600;margin-bottom:8px">{exp.get('title','')}</div>
+                    {''.join([f'<div class="q-text">• {b}</div>' for b in exp.get('bullets',[])])}
+                </div>""", unsafe_allow_html=True)
+
+        with tab4:
+            for proj in data.get("projects", []):
+                st.markdown(f"""
+                <div class="q-card">
+                    <div class="q-meta">
+                        <span class="tag tag-purple">{proj.get('name','')}</span>
+                        <span style="font-size:0.75rem;color:#6b7280">{proj.get('tech','')}</span>
+                    </div>
+                    {''.join([f'<div class="q-text">• {b}</div>' for b in proj.get('bullets',[])])}
+                </div>""", unsafe_allow_html=True)
+
+        # ── Generate & Download PDF ──
+        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Download Your Optimized Resume</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
+
+        with st.spinner("Generating PDF..."):
+            pdf_bytes = build_resume_pdf(data)
+
+        fname = f"{data.get('name','Resume').replace(' ','_')}_{target_role.replace(' ','_')}_ATS.pdf"
+
+        st.download_button(
+            label="⬇️ Download Optimized Resume PDF",
+            data=pdf_bytes,
+            file_name=fname,
+            mime="application/pdf",
+            type="primary",
+            use_container_width=True
+        )
+
+        st.caption("✅ This PDF is ATS-friendly — clean fonts, no tables in main content, keyword-optimized.")               
