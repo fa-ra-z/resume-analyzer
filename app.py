@@ -30,20 +30,35 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Hide Streamlit default UI elements */
-#MainMenu { visibility: hidden !important; }
-footer { visibility: hidden !important; }
-header { visibility: hidden !important; }
-[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
-[data-testid="stDecoration"] { visibility: hidden !important; display: none !important; }
-[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
-.viewerBadge_container__1QSob,
-.viewerBadge_link__1S137,
-.styles_viewerBadge__1yB5_,
-[class*="viewerBadge"] {
-    display: none !important;
-}
-button[kind="header"] { display: none !important; }
+/* ═══ HIDE ALL STREAMLIT CLOUD UI ═══ */
+#MainMenu, header, footer { display: none !important; visibility: hidden !important; }
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],
+[data-testid="stToolbarActions"],
+[data-testid="manage-app-button"],
+[data-testid="stAppDeployButton"] { display: none !important; }
+
+button[kind="header"], button[kind="headerNoPadding"] { display: none !important; }
+
+/* Bottom-right floating Streamlit Cloud badges (GitHub + Manage app) */
+[class*="viewerBadge"],
+[class*="ViewerBadge"],
+[class*="_profileContainer_"],
+[class*="_terminalButton_"],
+[class*="_link_"],
+[class*="_container_"][class*="badge"],
+a[href*="streamlit.io"],
+a[href*="share.streamlit.io"],
+a[href*="streamlitusercontent.com"] { display: none !important; }
+
+div[class*="styles_"][class*="Badge"],
+div[class*="styles_"][class*="badge"],
+div[class*="styles_terminalButton"],
+div[class*="styles_profileContainer"] { display: none !important; }
+
+.stApp a[target="_blank"][href*="github"] { display: none !important; }
 
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
@@ -1324,3 +1339,59 @@ elif page == "✨ Builder":
 # FOOTER
 # ─────────────────────────────────────────────
 st.markdown('<div class="footer-credit">Built by S.F.A. · Powered by Gemini AI</div>', unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────
+# FORCE-REMOVE STREAMLIT CLOUD BADGES (runs continuously)
+# ─────────────────────────────────────────────
+st.markdown("""
+<script>
+const killBadges = () => {
+    // Remove any link to Streamlit/GitHub
+    document.querySelectorAll('a').forEach(a => {
+        const href = (a.href || '').toLowerCase();
+        if (href.includes('streamlit.io') ||
+            href.includes('share.streamlit') ||
+            href.includes('github.com') ||
+            href.includes('streamlitusercontent')) {
+            a.remove();
+        }
+    });
+
+    // Remove badge containers by class pattern
+    const patterns = [
+        'viewerBadge', 'ViewerBadge',
+        'profileContainer', 'terminalButton',
+        'styles_Badge', 'styles_badge'
+    ];
+    patterns.forEach(p => {
+        document.querySelectorAll(`[class*="${p}"]`).forEach(el => el.remove());
+    });
+
+    // Remove fixed bottom-right floating elements
+    document.querySelectorAll('div').forEach(div => {
+        const style = window.getComputedStyle(div);
+        if (style.position === 'fixed' &&
+            style.bottom && parseFloat(style.bottom) < 50 &&
+            style.right && parseFloat(style.right) < 50 &&
+            div.offsetWidth < 200 &&
+            div.offsetHeight < 100) {
+            const hasLink = div.querySelector('a[target="_blank"]');
+            if (hasLink) div.remove();
+        }
+    });
+
+    // Hide header/footer remnants
+    ['header', 'footer', '#MainMenu'].forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => el.style.display = 'none');
+    });
+};
+
+// Run immediately on load
+killBadges();
+// Run every 300ms to catch re-injected badges
+setInterval(killBadges, 300);
+// Watch for DOM changes and re-run
+const observer = new MutationObserver(killBadges);
+observer.observe(document.body, { childList: true, subtree: true });
+</script>
+""", unsafe_allow_html=True)
