@@ -6,33 +6,28 @@ from reportlab.platypus import (
     HRFlowable, Table, TableStyle, KeepTogether
 )
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_JUSTIFY
 import io
 
 # ─────────────────────────────────────────────────────────────
-# COLOR PALETTE  — clean, professional, ATS-safe
+# COLOR PALETTE
 # ─────────────────────────────────────────────────────────────
-C_NAME        = colors.HexColor("#0D0D0D")   # near-black for name
-C_HEADING     = colors.HexColor("#1A1A2E")   # deep navy for section titles
-C_ACCENT      = colors.HexColor("#2563EB")   # blue accent line under name
-C_BODY        = colors.HexColor("#1F1F1F")   # body text
-C_MUTED       = colors.HexColor("#4B5563")   # company / date / meta
-C_RULE        = colors.HexColor("#D1D5DB")   # section divider lines
-C_BULLET_DOT  = colors.HexColor("#2563EB")   # bullet dot colour
+C_NAME        = colors.HexColor("#0D0D0D")
+C_HEADING     = colors.HexColor("#1A1A2E")
+C_ACCENT      = colors.HexColor("#2563EB")
+C_BODY        = colors.HexColor("#1F1F1F")
+C_MUTED       = colors.HexColor("#4B5563")
+C_RULE        = colors.HexColor("#D1D5DB")
 
 
 # ─────────────────────────────────────────────────────────────
-# TYPOGRAPHY  — all built-in Helvetica (universally embedded)
+# STYLES
 # ─────────────────────────────────────────────────────────────
 def get_styles():
-    BASE = 9.5   # body font size in points
-    LH   = 14    # standard line height
+    BASE = 9.5
+    LH   = 14
 
     return {
-
-        # ── Name ──────────────────────────────────────────
         "name": ParagraphStyle(
             "name",
             fontName="Helvetica-Bold",
@@ -41,10 +36,7 @@ def get_styles():
             leading=26,
             spaceAfter=1,
             alignment=TA_LEFT,
-            letterSpacing=0.5,
         ),
-
-        # ── Target role tag line ───────────────────────────
         "tagline": ParagraphStyle(
             "tagline",
             fontName="Helvetica",
@@ -54,8 +46,6 @@ def get_styles():
             spaceAfter=4,
             alignment=TA_LEFT,
         ),
-
-        # ── Contact bar ───────────────────────────────────
         "contact": ParagraphStyle(
             "contact",
             fontName="Helvetica",
@@ -65,8 +55,6 @@ def get_styles():
             spaceAfter=5,
             alignment=TA_LEFT,
         ),
-
-        # ── Section heading (EXPERIENCE, SKILLS …) ────────
         "section": ParagraphStyle(
             "section",
             fontName="Helvetica-Bold",
@@ -75,10 +63,7 @@ def get_styles():
             leading=12,
             spaceBefore=10,
             spaceAfter=2,
-            letterSpacing=1.4,       # wide-tracked caps feel premium
         ),
-
-        # ── Job / project title (bold, black) ─────────────
         "role_title": ParagraphStyle(
             "role_title",
             fontName="Helvetica-Bold",
@@ -88,8 +73,6 @@ def get_styles():
             spaceBefore=6,
             spaceAfter=0,
         ),
-
-        # ── Company + date meta line ───────────────────────
         "meta": ParagraphStyle(
             "meta",
             fontName="Helvetica-Oblique",
@@ -98,21 +81,20 @@ def get_styles():
             leading=13,
             spaceAfter=3,
         ),
-
-        # ── Bullet point ──────────────────────────────────
+        # ── BULLETS: use ReportLab's native bullet system ──
         "bullet": ParagraphStyle(
             "bullet",
             fontName="Helvetica",
             fontSize=BASE,
             textColor=C_BODY,
             leading=LH,
-            leftIndent=12,
-            firstLineIndent=-12,
+            leftIndent=14,         # body indent
+            bulletIndent=2,        # bullet dot position
             spaceAfter=2.5,
             alignment=TA_JUSTIFY,
+            bulletFontName="Helvetica-Bold",
+            bulletFontSize=BASE,
         ),
-
-        # ── Professional summary paragraph ────────────────
         "summary": ParagraphStyle(
             "summary",
             fontName="Helvetica",
@@ -122,21 +104,19 @@ def get_styles():
             spaceAfter=4,
             alignment=TA_JUSTIFY,
         ),
-
-        # ── Skill pill text ───────────────────────────────
         "skill": ParagraphStyle(
             "skill",
             fontName="Helvetica",
             fontSize=BASE,
             textColor=C_BODY,
             leading=LH,
-            leftIndent=10,
-            firstLineIndent=-10,
+            leftIndent=12,
+            bulletIndent=2,
             alignment=TA_LEFT,
             spaceAfter=2,
+            bulletFontName="Helvetica-Bold",
+            bulletFontSize=BASE,
         ),
-
-        # ── Education degree line ─────────────────────────
         "edu_degree": ParagraphStyle(
             "edu_degree",
             fontName="Helvetica-Bold",
@@ -146,8 +126,6 @@ def get_styles():
             spaceBefore=5,
             spaceAfter=0,
         ),
-
-        # ── Education detail (institution / grade) ────────
         "edu_detail": ParagraphStyle(
             "edu_detail",
             fontName="Helvetica",
@@ -156,17 +134,17 @@ def get_styles():
             leading=13,
             spaceAfter=2,
         ),
-
-        # ── Certification entry ───────────────────────────
         "cert": ParagraphStyle(
             "cert",
             fontName="Helvetica",
             fontSize=BASE,
             textColor=C_BODY,
             leading=LH,
-            leftIndent=12,
-            firstLineIndent=-12,
+            leftIndent=14,
+            bulletIndent=2,
             spaceAfter=2,
+            bulletFontName="Helvetica-Bold",
+            bulletFontSize=BASE,
         ),
     }
 
@@ -175,8 +153,7 @@ def get_styles():
 # HELPERS
 # ─────────────────────────────────────────────────────────────
 def _section_header(title: str, styles: dict, W: float) -> list:
-    """Returns [spacer, ALL-CAPS heading, thin accent rule] as a KeepTogether block."""
-    items = [
+    return [
         Spacer(1, 4),
         Paragraph(title.upper(), styles["section"]),
         HRFlowable(
@@ -187,21 +164,23 @@ def _section_header(title: str, styles: dict, W: float) -> list:
             spaceAfter=4,
         ),
     ]
-    return [KeepTogether(items)]
 
 
-def _bullet_line(text: str, styles: dict) -> Paragraph:
-    """Single bullet with a unicode bullet dot, properly indented."""
-    # Use HTML-safe bullet character
+def _bullet(text: str, styles: dict, style_key: str = "bullet") -> Paragraph:
+    """
+    Creates a properly-aligned bullet using ReportLab's native bullet system.
+    This GUARANTEES that wrapped lines align under the first character of text,
+    not under the bullet dot.
+    """
     safe = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     return Paragraph(
-        f'<font color="#2563EB">\u2022</font>  {safe}',
-        styles["bullet"]
+        safe,
+        styles[style_key],
+        bulletText="\u2022",   # • bullet character handled by ReportLab
     )
 
 
 def _two_col_row(left_para, right_para, W: float) -> Table:
-    """Utility: two-column table row (title left, date right)."""
     t = Table(
         [[left_para, right_para]],
         colWidths=[W * 0.74, W * 0.26],
@@ -221,23 +200,9 @@ def _two_col_row(left_para, right_para, W: float) -> Table:
 # MAIN PDF BUILDER
 # ─────────────────────────────────────────────────────────────
 def build_resume_pdf(resume_data: dict) -> bytes:
-    """
-    Builds a pixel-perfect, ATS-safe, HR-ready single-page PDF resume.
-
-    Parameters
-    ----------
-    resume_data : dict
-        Structured resume data returned by the AI optimizer.
-
-    Returns
-    -------
-    bytes
-        Raw PDF bytes ready for st.download_button.
-    """
     buffer = io.BytesIO()
     styles = get_styles()
 
-    # ── Page geometry ─────────────────────────────────────
     LEFT   = 18 * mm
     RIGHT  = 18 * mm
     TOP    = 16 * mm
@@ -256,12 +221,11 @@ def build_resume_pdf(resume_data: dict) -> bytes:
         creator="ResumeIQ",
     )
 
-    # Usable width after margins
     W = A4[0] - LEFT - RIGHT
     story = []
 
     # ══════════════════════════════════════════════════════
-    # 1. HEADER — Name · Role · Contact
+    # HEADER
     # ══════════════════════════════════════════════════════
     name     = resume_data.get("name", "").strip()
     tagline  = resume_data.get("target_role", "").strip()
@@ -274,7 +238,6 @@ def build_resume_pdf(resume_data: dict) -> bytes:
     if name:
         story.append(Paragraph(name, styles["name"]))
 
-    # Blue accent rule immediately under name
     story.append(
         HRFlowable(
             width=W,
@@ -288,16 +251,11 @@ def build_resume_pdf(resume_data: dict) -> bytes:
     if tagline:
         story.append(Paragraph(tagline, styles["tagline"]))
 
-    # Build contact line — only include non-empty fields
     contact_parts = []
-    if email:
-        contact_parts.append(email)
-    if phone:
-        contact_parts.append(phone)
-    if location:
-        contact_parts.append(location)
+    if email:    contact_parts.append(email)
+    if phone:    contact_parts.append(phone)
+    if location: contact_parts.append(location)
     if linkedin:
-        # Show clean label instead of full URL if URL is long
         label = "LinkedIn: " + (
             linkedin.split("linkedin.com/in/")[-1].rstrip("/")
             if "linkedin.com" in linkedin else linkedin
@@ -311,12 +269,11 @@ def build_resume_pdf(resume_data: dict) -> bytes:
         contact_parts.append(label)
 
     if contact_parts:
-        separator = "  \u2022  "          # spaced bullet separator
+        separator = "  \u2022  "
         story.append(
             Paragraph(separator.join(contact_parts), styles["contact"])
         )
 
-    # Thin full-width rule to close the header block
     story.append(
         HRFlowable(
             width=W,
@@ -328,7 +285,7 @@ def build_resume_pdf(resume_data: dict) -> bytes:
     )
 
     # ══════════════════════════════════════════════════════
-    # 2. PROFESSIONAL SUMMARY
+    # SUMMARY
     # ══════════════════════════════════════════════════════
     summary = resume_data.get("summary", "").strip()
     if summary:
@@ -336,41 +293,79 @@ def build_resume_pdf(resume_data: dict) -> bytes:
         story.append(Paragraph(summary, styles["summary"]))
 
     # ══════════════════════════════════════════════════════
-    # 3. SKILLS  — 3-column grid
+    # SKILLS — clean 3-column grid using inner tables
     # ══════════════════════════════════════════════════════
     skills = [s.strip() for s in resume_data.get("skills", []) if s.strip()]
     if skills:
         story += _section_header("Technical Skills", styles, W)
 
         COLS = 3
-        # Pad to fill last row
         while len(skills) % COLS != 0:
             skills.append("")
 
-        rows = [skills[i:i + COLS] for i in range(0, len(skills), COLS)]
+        # Distribute skills column-by-column (vertical fill, like newspaper columns)
+        rows_count = len(skills) // COLS
+        grid = [["" for _ in range(COLS)] for _ in range(rows_count)]
+        for idx, skill in enumerate(skills):
+            col = idx // rows_count
+            row = idx % rows_count
+            if col < COLS:
+                grid[row][col] = skill
+
         table_data = []
-        for row in rows:
-            table_data.append([
-                Paragraph(
-                    f'<font color="#2563EB">\u2022</font>  {s}' if s else "",
-                    styles["skill"]
-                )
-                for s in row
-            ])
+        for row in grid:
+            cells = []
+            for s in row:
+                if s:
+                    # Each skill cell is a mini-table: [dot] [text]
+                    inner = Table(
+                        [[
+                            Paragraph(
+                                f'<font color="#2563EB"><b>\u2022</b></font>',
+                                ParagraphStyle("dot",
+                                    fontName="Helvetica-Bold",
+                                    fontSize=9.5,
+                                    textColor=C_ACCENT,
+                                    leading=14,
+                                )
+                            ),
+                            Paragraph(
+                                s,
+                                ParagraphStyle("st",
+                                    fontName="Helvetica",
+                                    fontSize=9.5,
+                                    textColor=C_BODY,
+                                    leading=14,
+                                )
+                            )
+                        ]],
+                        colWidths=[8, None],
+                    )
+                    inner.setStyle(TableStyle([
+                        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+                        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+                        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+                        ("TOPPADDING",    (0, 0), (-1, -1), 0),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                    ]))
+                    cells.append(inner)
+                else:
+                    cells.append("")
+            table_data.append(cells)
 
         col_w = W / COLS
         skill_table = Table(table_data, colWidths=[col_w] * COLS)
         skill_table.setStyle(TableStyle([
             ("VALIGN",        (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING",   (0, 0), (-1, -1), 2),
-            ("RIGHTPADDING",  (0, 0), (-1, -1), 4),
-            ("TOPPADDING",    (0, 0), (-1, -1), 1),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
+            ("TOPPADDING",    (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
         ]))
         story.append(skill_table)
 
     # ══════════════════════════════════════════════════════
-    # 4. EXPERIENCE
+    # EXPERIENCE
     # ══════════════════════════════════════════════════════
     experience = resume_data.get("experience", [])
     if experience:
@@ -382,7 +377,6 @@ def build_resume_pdf(resume_data: dict) -> bytes:
             duration = exp.get("duration", "").strip()
             bullets  = [b.strip() for b in exp.get("bullets", []) if b.strip()]
 
-            # Title + company on one line, duration right-aligned
             left_text  = f"<b>{title}</b>" + (f"  —  {company}" if company else "")
             right_text = duration
 
@@ -394,13 +388,13 @@ def build_resume_pdf(resume_data: dict) -> bytes:
                 )
             ]
             for b in bullets:
-                block.append(_bullet_line(b, styles))
+                block.append(_bullet(b, styles))
             block.append(Spacer(1, 3))
 
             story.append(KeepTogether(block))
 
     # ══════════════════════════════════════════════════════
-    # 5. PROJECTS
+    # PROJECTS
     # ══════════════════════════════════════════════════════
     projects = resume_data.get("projects", [])
     if projects:
@@ -411,7 +405,6 @@ def build_resume_pdf(resume_data: dict) -> bytes:
             tech    = proj.get("tech", "").strip()
             bullets = [b.strip() for b in proj.get("bullets", []) if b.strip()]
 
-            # Project name bold, tech stack muted italic
             header_text = f"<b>{pname}</b>"
             if tech:
                 safe_tech = tech.replace("&", "&amp;")
@@ -421,23 +414,23 @@ def build_resume_pdf(resume_data: dict) -> bytes:
 
             block = [Paragraph(header_text, styles["role_title"])]
             for b in bullets:
-                block.append(_bullet_line(b, styles))
+                block.append(_bullet(b, styles))
             block.append(Spacer(1, 3))
 
             story.append(KeepTogether(block))
 
     # ══════════════════════════════════════════════════════
-    # 6. EDUCATION
+    # EDUCATION
     # ══════════════════════════════════════════════════════
     education = resume_data.get("education", [])
     if education:
         story += _section_header("Education", styles, W)
 
         for edu in education:
-            degree  = edu.get("degree", "").strip()
-            inst    = edu.get("institution", "").strip()
-            year    = edu.get("year", "").strip()
-            grade   = edu.get("grade", "").strip()
+            degree = edu.get("degree", "").strip()
+            inst   = edu.get("institution", "").strip()
+            year   = edu.get("year", "").strip()
+            grade  = edu.get("grade", "").strip()
 
             block = [
                 _two_col_row(
@@ -460,21 +453,15 @@ def build_resume_pdf(resume_data: dict) -> bytes:
             story.append(KeepTogether(block))
 
     # ══════════════════════════════════════════════════════
-    # 7. CERTIFICATIONS
+    # CERTIFICATIONS
     # ══════════════════════════════════════════════════════
     certs = [c.strip() for c in resume_data.get("certifications", []) if c.strip()]
     if certs:
         story += _section_header("Certifications", styles, W)
         for cert in certs:
-            story.append(
-                Paragraph(
-                    f'<font color="#2563EB">\u2022</font>  {cert}',
-                    styles["cert"]
-                )
-            )
+            story.append(_bullet(cert, styles, style_key="cert"))
         story.append(Spacer(1, 4))
 
-    # ── Build the PDF ─────────────────────────────────────
     doc.build(story)
     buffer.seek(0)
     return buffer.getvalue()
