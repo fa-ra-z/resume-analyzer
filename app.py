@@ -30,6 +30,21 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+/* Hide Streamlit default UI elements */
+#MainMenu { visibility: hidden !important; }
+footer { visibility: hidden !important; }
+header { visibility: hidden !important; }
+[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
+[data-testid="stDecoration"] { visibility: hidden !important; display: none !important; }
+[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
+.viewerBadge_container__1QSob,
+.viewerBadge_link__1S137,
+.styles_viewerBadge__1yB5_,
+[class*="viewerBadge"] {
+    display: none !important;
+}
+button[kind="header"] { display: none !important; }
+
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
