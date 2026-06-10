@@ -709,22 +709,24 @@ def render_upload_step():
     </div>
     """, unsafe_allow_html=True)
 
-    col = st.container()
-    with col:
-        uploaded = st.file_uploader(
-            "Drop PDF here or click to browse",
-            type=["pdf"],
-            label_visibility="collapsed",
-            key="main_uploader"
-        )
+    uploaded = st.file_uploader(
+        "Drop PDF here or click to browse",
+        type=["pdf"],
+        label_visibility="collapsed",
+        key="main_uploader"
+    )
 
     if uploaded is not None:
+        # New file uploaded — extract and rerun to move to next step
         if (st.session_state.resume_text == ""
                 or st.session_state.resume_filename != uploaded.name):
             with st.spinner("Reading PDF..."):
                 st.session_state.resume_text = extract_text_from_pdf(uploaded)
                 st.session_state.resume_filename = uploaded.name
+            # ✅ FORCE RERUN so the wizard advances to Step 2
+            st.rerun()
 
+        # Show preview card (only shown briefly before rerun)
         size_kb = round(uploaded.size / 1024, 1)
         st.markdown(f"""
         <div class="pdf-preview">
