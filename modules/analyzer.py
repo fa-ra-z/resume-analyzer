@@ -19,7 +19,7 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 groq_client  = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-GROQ_MODEL = "llama3-70b-8192"  # Best free Groq model
+GROQ_MODEL = "llama-3.3-70b-versatile"  # Best free Groq model
 
 
 # ── JSON parser (same for both APIs) ─────────────────────────
