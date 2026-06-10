@@ -19,7 +19,8 @@ from modules.ats_scorer import calculate_rule_based_ats
 st.set_page_config(
     page_title="ResumeIQ — AI Resume Analyzer",
     page_icon="🎯",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 # ─────────────────────────────────────────────
@@ -27,31 +28,325 @@ st.set_page_config(
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
-    background-color: #0a0a0f;
 }
 
-[data-testid="stSidebar"] {
-    background: #0f0f18 !important;
-    border-right: 1px solid #1e1e30 !important;
+/* HIDE SIDEBAR COMPLETELY */
+[data-testid="stSidebar"] { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
+
+/* Background with subtle gradient */
+.stApp {
+    background:
+        radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(59, 130, 246, 0.06) 0%, transparent 40%),
+        #0a0a14 !important;
 }
-[data-testid="stSidebar"] * { color: #94a3b8; }
-[data-testid="stSidebar"] h1,
-[data-testid="stSidebar"] h2,
-[data-testid="stSidebar"] h3 { color: #e2e8f0; }
-[data-testid="stSidebarContent"] { padding: 1.5rem 1rem; }
+[data-testid="stAppViewContainer"] { background: transparent !important; }
+[data-testid="stHeader"] { background: transparent !important; }
 
 .main .block-container {
-    background: #0a0a0f;
-    padding: 2rem 2.5rem;
-    max-width: 1100px;
+    padding: 1.5rem 2rem 3rem;
+    max-width: 1200px;
 }
 
-.score-card {
+/* ───────── TOP NAV BAR ───────── */
+.top-nav {
+    background: rgba(15, 15, 24, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid #1e1e30;
+    border-radius: 16px;
+    padding: 14px 22px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #818cf8, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #6366f1, #3b82f6);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+}
+
+/* Style Streamlit's radio as pill nav */
+div[role="radiogroup"] {
+    flex-direction: row !important;
+    gap: 6px !important;
+    background: #0a0a14;
+    padding: 5px;
+    border-radius: 12px;
+    border: 1px solid #1e1e30;
+}
+div[role="radiogroup"] label {
+    background: transparent !important;
+    border-radius: 9px !important;
+    padding: 8px 16px !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    margin: 0 !important;
+    border: 1px solid transparent !important;
+}
+div[role="radiogroup"] label:hover {
+    background: #14142a !important;
+}
+div[role="radiogroup"] label[data-checked="true"] {
+    background: linear-gradient(135deg, #4f46e5, #3b82f6) !important;
+    border: 1px solid #6366f1 !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+}
+div[role="radiogroup"] label > div:first-child { display: none !important; }
+div[role="radiogroup"] label p {
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    color: #94a3b8 !important;
+    margin: 0 !important;
+}
+div[role="radiogroup"] label[data-checked="true"] p {
+    color: white !important;
+    font-weight: 600 !important;
+}
+
+/* ───────── PAGE TITLE ───────── */
+.page-hero {
+    text-align: center;
+    margin: 8px 0 30px;
+}
+.page-hero h1 {
+    font-size: 2.4rem !important;
+    font-weight: 800 !important;
+    background: linear-gradient(135deg, #ffffff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px !important;
+}
+.page-hero p {
+    color: #6b7280;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* ───────── 3-STEP PROGRESS ───────── */
+.stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 0 auto 36px;
+    max-width: 600px;
+}
+.step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.step-circle {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: 2px solid #1e1e30;
     background: #0f0f18;
+    color: #4b5563;
+    transition: all 0.3s;
+}
+.step-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #4b5563;
+    white-space: nowrap;
+}
+.step.active .step-circle {
+    background: linear-gradient(135deg, #6366f1, #3b82f6);
+    border-color: #6366f1;
+    color: white;
+    box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.15);
+}
+.step.active .step-label {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+.step.done .step-circle {
+    background: #14532d;
+    border-color: #16a34a;
+    color: #4ade80;
+}
+.step.done .step-label { color: #6b7280; }
+.step-line {
+    flex: 1;
+    height: 2px;
+    background: #1e1e30;
+    margin: 0 14px;
+    min-width: 50px;
+    border-radius: 2px;
+}
+.step-line.done {
+    background: linear-gradient(90deg, #16a34a, #6366f1);
+}
+
+/* ───────── WIZARD STEP CARD ───────── */
+.wizard-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.04), rgba(59, 130, 246, 0.03));
+    border: 1px solid #1e1e30;
+    border-radius: 18px;
+    padding: 32px;
+    margin-bottom: 18px;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.wizard-step-label {
+    display: inline-block;
+    background: linear-gradient(135deg, #312e81, #1e3a8a);
+    color: #a5b4fc;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 14px;
+}
+.wizard-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    margin-bottom: 6px;
+}
+.wizard-sub {
+    color: #6b7280;
+    font-size: 0.88rem;
+    margin-bottom: 20px;
+}
+
+/* File uploader — large dropzone */
+[data-testid="stFileUploader"] {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(59, 130, 246, 0.03)) !important;
+    border: 2px dashed #4338ca !important;
+    border-radius: 14px !important;
+    padding: 20px !important;
+    transition: all 0.3s !important;
+}
+[data-testid="stFileUploader"]:hover {
+    border-color: #6366f1 !important;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(59, 130, 246, 0.05)) !important;
+}
+[data-testid="stFileUploader"] section { padding: 1.5rem 1rem !important; }
+[data-testid="stFileUploader"] label, [data-testid="stFileUploader"] small {
+    color: #cbd5e1 !important;
+}
+[data-testid="stFileUploaderDropzone"] {
+    background: transparent !important;
+}
+
+/* PDF preview card */
+.pdf-preview {
+    background: #0f0f18;
+    border: 1px solid #312e81;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.pdf-icon {
+    width: 48px; height: 56px;
+    background: linear-gradient(135deg, #4f46e5, #3b82f6);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 0.7rem;
+    flex-shrink: 0;
+}
+.pdf-name {
+    color: #e2e8f0;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+    word-break: break-all;
+}
+.pdf-meta {
+    color: #6b7280;
+    font-size: 0.75rem;
+}
+.pdf-status {
+    color: #4ade80;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+/* Text input */
+.stTextInput > div > div > input {
+    background: #0f0f18 !important;
+    border: 1px solid #1e1e30 !important;
+    border-radius: 10px !important;
+    color: #e2e8f0 !important;
+    font-size: 0.9rem !important;
+    padding: 12px 16px !important;
+    height: auto !important;
+}
+.stTextInput > div > div > input:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.18) !important;
+}
+.stTextInput label {
+    color: #cbd5e1 !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+}
+
+/* Buttons */
+.stButton > button {
+    background: linear-gradient(135deg, #4f46e5, #3b82f6) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 11px !important;
+    padding: 12px 28px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    letter-spacing: 0.02em !important;
+    transition: all 0.2s !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3) !important;
+}
+.stButton > button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45) !important;
+}
+.stButton > button:disabled {
+    background: #1e1e30 !important;
+    color: #4b5563 !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+}
+[data-testid="stDownloadButton"] > button {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+}
+
+/* ───────── RESULT CARDS ───────── */
+.score-card {
+    background: linear-gradient(135deg, #0f0f18, #14142a);
     border: 1px solid #1e1e30;
     border-radius: 14px;
     padding: 20px 22px;
@@ -62,13 +357,16 @@ html, body, [class*="css"] {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #6366f1, #a78bfa);
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #3b82f6);
 }
 .score-num {
     font-size: 2.4rem;
     font-weight: 700;
-    color: #e2e8f0;
+    background: linear-gradient(135deg, #ffffff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     line-height: 1.1;
     margin: 8px 0 4px;
 }
@@ -76,7 +374,7 @@ html, body, [class*="css"] {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #4b5563;
+    color: #6b7280;
     font-weight: 500;
 }
 .score-icon {
@@ -95,14 +393,17 @@ html, body, [class*="css"] {
 .section-hdr-line {
     flex: 1;
     height: 1px;
-    background: #1e1e30;
+    background: linear-gradient(90deg, #1e1e30, transparent);
 }
 .section-hdr-text {
     font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #6366f1;
-    font-weight: 600;
+    background: linear-gradient(135deg, #818cf8, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
     white-space: nowrap;
 }
 
@@ -121,7 +422,7 @@ html, body, [class*="css"] {
 .tag-blue   { background: #0c1a3a; color: #93c5fd; border: 1px solid #1e3a5f; }
 
 .sugg-card {
-    background: #0a0a0f;
+    background: #0f0f18;
     border: 1px solid #1e1e30;
     border-radius: 10px;
     padding: 14px 16px;
@@ -132,8 +433,8 @@ html, body, [class*="css"] {
 }
 .sugg-num {
     width: 22px; height: 22px;
-    background: #1e1b4b;
-    color: #a78bfa;
+    background: linear-gradient(135deg, #4f46e5, #3b82f6);
+    color: white;
     border-radius: 50%;
     font-size: 0.7rem;
     font-weight: 700;
@@ -149,7 +450,7 @@ html, body, [class*="css"] {
 }
 .sugg-text {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: #94a3b8;
     line-height: 1.5;
 }
 
@@ -172,12 +473,12 @@ html, body, [class*="css"] {
     color: #cbd5e1;
     line-height: 1.6;
 }
-.diff-easy   { color: #4ade80; font-size: 0.72rem; font-weight: 600; }
-.diff-medium { color: #fbbf24; font-size: 0.72rem; font-weight: 600; }
-.diff-hard   { color: #f87171; font-size: 0.72rem; font-weight: 600; }
+.diff-easy   { color: #4ade80; font-size: 0.72rem; font-weight: 700; }
+.diff-medium { color: #fbbf24; font-size: 0.72rem; font-weight: 700; }
+.diff-hard   { color: #f87171; font-size: 0.72rem; font-weight: 700; }
 
 .feedback-box {
-    background: #0c1526;
+    background: linear-gradient(135deg, #0c1526, #0f1a2e);
     border: 1px solid #1e3a5f;
     border-radius: 12px;
     padding: 18px 20px;
@@ -197,7 +498,7 @@ html, body, [class*="css"] {
 .fb-row strong { color: #e2e8f0; }
 
 .job-card {
-    background: #0f0f18;
+    background: linear-gradient(135deg, #0f0f18, #14142a);
     border: 1px solid #1e1e30;
     border-radius: 14px;
     padding: 18px;
@@ -209,7 +510,10 @@ html, body, [class*="css"] {
 .job-pct {
     font-size: 1.6rem;
     font-weight: 700;
-    color: #a78bfa;
+    background: linear-gradient(135deg, #818cf8, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     min-width: 64px;
     text-align: right;
 }
@@ -222,37 +526,6 @@ html, body, [class*="css"] {
 .job-reason {
     font-size: 0.78rem;
     color: #6b7280;
-}
-
-[data-testid="stFileUploader"] {
-    border: 1px dashed #312e81 !important;
-    border-radius: 12px !important;
-    background: #0a0a14 !important;
-}
-
-.stButton > button {
-    background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 10px !important;
-    padding: 10px 22px !important;
-    font-weight: 600 !important;
-    font-size: 0.85rem !important;
-    letter-spacing: 0.02em !important;
-    transition: opacity 0.2s !important;
-}
-.stButton > button:hover { opacity: 0.88 !important; }
-
-.stTextInput > div > div > input {
-    background: #0f0f18 !important;
-    border: 1px solid #1e1e30 !important;
-    border-radius: 8px !important;
-    color: #e2e8f0 !important;
-    font-size: 0.85rem !important;
-}
-.stTextInput > div > div > input:focus {
-    border-color: #6366f1 !important;
-    box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
 }
 
 .streamlit-expanderHeader {
@@ -278,27 +551,46 @@ html, body, [class*="css"] {
     padding: 6px 16px !important;
 }
 .stTabs [aria-selected="true"] {
-    background: #1e1b4b !important;
-    color: #a78bfa !important;
+    background: linear-gradient(135deg, #4f46e5, #3b82f6) !important;
+    color: white !important;
     font-weight: 600 !important;
 }
 
 [data-testid="stMetricValue"] {
-    color: #a78bfa !important;
+    background: linear-gradient(135deg, #818cf8, #38bdf8) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
     font-size: 1.6rem !important;
     font-weight: 700 !important;
 }
 [data-testid="stMetricLabel"] {
-    color: #4b5563 !important;
+    color: #6b7280 !important;
     font-size: 0.75rem !important;
     text-transform: uppercase !important;
     letter-spacing: 0.08em !important;
 }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: #0a0a0f; }
-::-webkit-scrollbar-thumb { background: #1e1e30; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0a0a14; }
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #4f46e5, #3b82f6);
+    border-radius: 4px;
+}
+
+/* All text */
+p, span, label, div { color: #cbd5e1; }
+h1, h2, h3, h4 { color: #e2e8f0 !important; }
+
+/* Footer credit */
+.footer-credit {
+    text-align: center;
+    color: #4b5563;
+    font-size: 0.75rem;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #1e1e30;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -307,6 +599,10 @@ html, body, [class*="css"] {
 # ─────────────────────────────────────────────
 if "resume_text" not in st.session_state:
     st.session_state.resume_text = ""
+if "resume_filename" not in st.session_state:
+    st.session_state.resume_filename = ""
+if "target_role" not in st.session_state:
+    st.session_state.target_role = ""
 if "analysis" not in st.session_state:
     st.session_state.analysis = None
 if "ats_local" not in st.session_state:
@@ -315,66 +611,201 @@ if "job_roles" not in st.session_state:
     st.session_state.job_roles = None
 if "questions" not in st.session_state:
     st.session_state.questions = None
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "📄 Analysis"
+
 
 # ─────────────────────────────────────────────
-# SIDEBAR
+# TOP NAVIGATION BAR
 # ─────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("## 🎯 ResumeIQ")
-    st.markdown("*AI-powered resume analysis & interview prep*")
-    st.divider()
+nav_col1, nav_col2 = st.columns([1, 3])
 
-    page = st.radio("📌 Go to", [
-        "📄 Resume Analysis",
-        "💼 Job Role Prediction",
-        "🎤 Interview Practice",
-        "✨ ATS Resume Builder"
-    ])
+with nav_col1:
+    st.markdown("""
+    <div style="display:flex;align-items:center;gap:10px;padding-top:8px">
+        <div class="brand-icon">🎯</div>
+        <div class="brand">ResumeIQ</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.divider()
-
-    target_role = st.text_input(
-        "🎯 Target Job Role",
-        placeholder="e.g. Data Analyst, SDE"
+with nav_col2:
+    page = st.radio(
+        "navigation",
+        ["📄 Analysis", "💼 Job Roles", "🎤 Interview", "✨ Builder"],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="nav_radio"
     )
 
-    uploaded_file = st.file_uploader("📎 Upload Resume (PDF only)", type=["pdf"])
+st.markdown("<div style='height:1px;background:#1e1e30;margin-bottom:24px'></div>", unsafe_allow_html=True)
 
-    if uploaded_file is not None:
-        if st.session_state.resume_text == "":
-            with st.spinner("Reading PDF..."):
-                st.session_state.resume_text = extract_text_from_pdf(uploaded_file)
-            st.success("✅ Resume loaded!")
+
+# ─────────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────────
+def render_stepper(steps, current):
+    """Render the 3-step progress indicator.
+       steps: list of labels  | current: index of active step (0-based)"""
+    html = '<div class="stepper">'
+    for i, label in enumerate(steps):
+        if i < current:
+            state = "done"
+            icon = "✓"
+        elif i == current:
+            state = "active"
+            icon = str(i + 1)
         else:
-            st.success("✅ Resume ready!")
+            state = ""
+            icon = str(i + 1)
+        html += f'''
+        <div class="step {state}">
+            <div class="step-circle">{icon}</div>
+            <div class="step-label">{label}</div>
+        </div>'''
+        if i < len(steps) - 1:
+            line_class = "done" if i < current else ""
+            html += f'<div class="step-line {line_class}"></div>'
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
 
-    st.divider()
-    st.caption("Built by S.F.A.")
+
+def render_upload_step():
+    """Step 1 — Upload card."""
+    st.markdown("""
+    <div class="wizard-card">
+        <div class="wizard-step-label">Step 1 of 3</div>
+        <div class="wizard-title">📎 Upload your resume</div>
+        <div class="wizard-sub">Drop your PDF below — we'll extract everything automatically.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col = st.container()
+    with col:
+        uploaded = st.file_uploader(
+            "Drop PDF here or click to browse",
+            type=["pdf"],
+            label_visibility="collapsed",
+            key="main_uploader"
+        )
+
+    if uploaded is not None:
+        if (st.session_state.resume_text == ""
+                or st.session_state.resume_filename != uploaded.name):
+            with st.spinner("Reading PDF..."):
+                st.session_state.resume_text = extract_text_from_pdf(uploaded)
+                st.session_state.resume_filename = uploaded.name
+
+        size_kb = round(uploaded.size / 1024, 1)
+        st.markdown(f"""
+        <div class="pdf-preview">
+            <div class="pdf-icon">PDF</div>
+            <div>
+                <div class="pdf-name">{uploaded.name}</div>
+                <div class="pdf-meta">{size_kb} KB · Ready for analysis</div>
+            </div>
+            <div class="pdf-status">✓ Loaded</div>
+        </div>
+        """, unsafe_allow_html=True)
+        return True
+    return False
+
+
+def render_role_step(required=True):
+    """Step 2 — Target role input."""
+    st.markdown(f"""
+    <div class="wizard-card">
+        <div class="wizard-step-label">Step 2 of 3</div>
+        <div class="wizard-title">🎯 Enter your target role</div>
+        <div class="wizard-sub">
+            {'Required — helps us tailor keywords and questions for your dream job.'
+             if required else 'Optional — adds extra context to the analysis.'}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    role = st.text_input(
+        "Target Job Role",
+        value=st.session_state.target_role,
+        placeholder="e.g. Data Analyst, Software Engineer, Product Manager",
+        label_visibility="collapsed",
+        key="role_input"
+    )
+    st.session_state.target_role = role
+    return role
 
 
 # ═══════════════════════════════════════════════════════
 # PAGE 1 — RESUME ANALYSIS
 # ═══════════════════════════════════════════════════════
-if page == "📄 Resume Analysis":
+if page == "📄 Analysis":
 
-    st.title("📄 Resume Analysis")
-    st.markdown("Upload your resume and get an instant AI-powered ATS analysis.")
+    st.markdown("""
+    <div class="page-hero">
+        <h1>Resume Analysis</h1>
+        <p>Get an instant AI-powered ATS score and actionable feedback</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    if not uploaded_file:
-        st.info("👈 Please upload your resume PDF from the sidebar to begin.")
+    # Determine current step
+    has_pdf = st.session_state.resume_text != ""
+    has_role = st.session_state.target_role.strip() != ""
+    has_analysis = st.session_state.analysis is not None
+
+    if not has_pdf:
+        current_step = 0
+    elif not has_role:
+        current_step = 1
+    else:
+        current_step = 2
+
+    render_stepper(["Upload Resume", "Target Role", "Analyze"], current_step)
+
+    # ── STEP 1: Upload ──
+    if not has_pdf:
+        render_upload_step()
         st.stop()
 
-    if st.button("🔍 Analyze My Resume", type="primary"):
-        with st.spinner("🤖 Gemini AI is reading your resume... this takes ~10 seconds"):
-            st.session_state.analysis = analyze_resume(
-                st.session_state.resume_text,
-                target_role if target_role else "General"
-            )
-            st.session_state.ats_local = calculate_rule_based_ats(
-                st.session_state.resume_text,
-                target_role if target_role else "general"
-            )
+    # Show compact upload status if already done
+    st.markdown(f"""
+    <div class="pdf-preview" style="max-width:720px;margin:0 auto 18px">
+        <div class="pdf-icon">PDF</div>
+        <div>
+            <div class="pdf-name">{st.session_state.resume_filename}</div>
+            <div class="pdf-meta">Resume loaded successfully</div>
+        </div>
+        <div class="pdf-status">✓ Ready</div>
+    </div>
+    """, unsafe_allow_html=True)
 
+    # ── STEP 2: Role ──
+    role = render_role_step(required=False)
+    if not role:
+        st.caption("👆 Enter a target role above, or click Analyze to use general analysis.")
+
+    # ── STEP 3: Analyze button ──
+    st.markdown("""
+    <div class="wizard-card">
+        <div class="wizard-step-label">Step 3 of 3</div>
+        <div class="wizard-title">🔍 Run AI Analysis</div>
+        <div class="wizard-sub">Gemini AI will analyze your resume in ~10 seconds.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    btn_col = st.columns([1, 2, 1])[1]
+    with btn_col:
+        if st.button("🚀 Analyze My Resume", type="primary", use_container_width=True):
+            with st.spinner("🤖 Gemini AI is reading your resume..."):
+                st.session_state.analysis = analyze_resume(
+                    st.session_state.resume_text,
+                    role if role else "General"
+                )
+                st.session_state.ats_local = calculate_rule_based_ats(
+                    st.session_state.resume_text,
+                    role if role else "general"
+                )
+            st.rerun()
+
+    # ── RESULTS ──
     if st.session_state.analysis:
         data = st.session_state.analysis
         local = st.session_state.ats_local
@@ -383,7 +814,6 @@ if page == "📄 Resume Analysis":
             st.error(f"❌ Error: {data['error']}")
             st.stop()
 
-        # ── Score Cards ──
         st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Your Scores</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
         col1, col2, col3, col4 = st.columns(4)
 
@@ -394,7 +824,6 @@ if page == "📄 Resume Analysis":
                 <div class="score-num">{data.get('ats_score', '?')}</div>
                 <div class="score-label">ATS Score</div>
             </div>""", unsafe_allow_html=True)
-
         with col2:
             st.markdown(f"""
             <div class="score-card">
@@ -402,7 +831,6 @@ if page == "📄 Resume Analysis":
                 <div class="score-num">{local.get('rule_based_score', '?')}</div>
                 <div class="score-label">Keyword Score</div>
             </div>""", unsafe_allow_html=True)
-
         with col3:
             st.markdown(f"""
             <div class="score-card">
@@ -410,7 +838,6 @@ if page == "📄 Resume Analysis":
                 <div class="score-num" style="font-size:1.6rem">{data.get('overall_rating', '?')}</div>
                 <div class="score-label">Overall Rating</div>
             </div>""", unsafe_allow_html=True)
-
         with col4:
             st.markdown(f"""
             <div class="score-card">
@@ -421,7 +848,6 @@ if page == "📄 Resume Analysis":
 
         # ── ATS Gauge ──
         st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ ATS Compatibility Gauge</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
-
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=data.get('ats_score', 0),
@@ -449,23 +875,18 @@ if page == "📄 Resume Analysis":
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        # ── Strengths & Weaknesses ──
         col_a, col_b = st.columns(2)
-
         with col_a:
             st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Strengths</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
             for item in data.get("strengths", []):
                 st.markdown(f'<span class="tag tag-green">✓ {item}</span>', unsafe_allow_html=True)
-
         with col_b:
             st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Weaknesses</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
             for item in data.get("weaknesses", []):
                 st.markdown(f'<span class="tag tag-red">✗ {item}</span>', unsafe_allow_html=True)
 
-        # ── Missing Skills ──
         st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Skills to Add</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
         st.caption("These keywords are missing — adding them increases your ATS score.")
-
         all_missing = list(set(
             data.get("missing_skills", []) +
             local.get("missing_keywords", [])
@@ -473,13 +894,11 @@ if page == "📄 Resume Analysis":
         for skill in all_missing:
             st.markdown(f'<span class="tag tag-purple">+ {skill}</span>', unsafe_allow_html=True)
 
-        # ── Formatting Issues ──
         if data.get("formatting_issues"):
             st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Formatting Issues</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
             for issue in data.get("formatting_issues", []):
                 st.warning(f"⚠️ {issue}")
 
-        # ── Improvement Suggestions ──
         st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ How to Improve</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
         for i, item in enumerate(data.get("improvement_suggestions", [])):
             st.markdown(f"""
@@ -491,7 +910,6 @@ if page == "📄 Resume Analysis":
                 </div>
             </div>""", unsafe_allow_html=True)
 
-        # ── Resume Checklist ──
         st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Resume Checklist</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Email",    "✅" if local.get("has_email")    else "❌")
@@ -499,7 +917,6 @@ if page == "📄 Resume Analysis":
         c3.metric("GitHub",   "✅" if local.get("has_github")   else "❌")
         c4.metric("LinkedIn", "✅" if local.get("has_linkedin") else "❌")
 
-        # ── AI Summary ──
         st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ AI Summary</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
         st.info(data.get("summary", "No summary available."))
 
@@ -507,30 +924,59 @@ if page == "📄 Resume Analysis":
 # ═══════════════════════════════════════════════════════
 # PAGE 2 — JOB ROLE PREDICTION
 # ═══════════════════════════════════════════════════════
-elif page == "💼 Job Role Prediction":
+elif page == "💼 Job Roles":
 
-    st.title("💼 Best Job Roles for You")
-    st.markdown("AI will match your resume skills to real job market roles.")
+    st.markdown("""
+    <div class="page-hero">
+        <h1>Job Role Prediction</h1>
+        <p>Discover which roles best match your resume profile</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    if not uploaded_file:
-        st.info("👈 Please upload your resume PDF from the sidebar first.")
+    has_pdf = st.session_state.resume_text != ""
+    current_step = 0 if not has_pdf else 1
+
+    render_stepper(["Upload Resume", "Predict Matches"], current_step)
+
+    if not has_pdf:
+        render_upload_step()
         st.stop()
 
-    if st.button("🔮 Find My Best Job Matches", type="primary"):
-        with st.spinner("Analyzing your profile against job market..."):
-            st.session_state.job_roles = predict_job_roles(
-                st.session_state.resume_text
-            )
+    st.markdown(f"""
+    <div class="pdf-preview" style="max-width:720px;margin:0 auto 18px">
+        <div class="pdf-icon">PDF</div>
+        <div>
+            <div class="pdf-name">{st.session_state.resume_filename}</div>
+            <div class="pdf-meta">Resume loaded successfully</div>
+        </div>
+        <div class="pdf-status">✓ Ready</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="wizard-card">
+        <div class="wizard-step-label">Step 2 of 2</div>
+        <div class="wizard-title">🔮 Find Your Best Job Matches</div>
+        <div class="wizard-sub">AI matches your skills to real-world job roles.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    btn_col = st.columns([1, 2, 1])[1]
+    with btn_col:
+        if st.button("🔮 Predict My Best Roles", type="primary", use_container_width=True):
+            with st.spinner("Analyzing your profile against the job market..."):
+                st.session_state.job_roles = predict_job_roles(
+                    st.session_state.resume_text
+                )
+            st.rerun()
 
     if st.session_state.job_roles:
         result = st.session_state.job_roles
-
         if "error" in result:
             st.error(f"❌ {result['error']}")
             st.stop()
 
         roles = result.get("predicted_roles", [])
-
         if roles:
             fig = px.bar(
                 x=[r["match_percentage"] for r in roles],
@@ -551,10 +997,8 @@ elif page == "💼 Job Role Prediction":
             st.plotly_chart(fig, use_container_width=True)
 
             st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Role Breakdown</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
-
             for i, role in enumerate(roles):
                 pct = role['match_percentage']
-                badge = "tag-green" if pct >= 75 else "tag-amber" if pct >= 50 else "tag-red"
                 st.markdown(f"""
                 <div class="job-card">
                     <div>
@@ -568,41 +1012,76 @@ elif page == "💼 Job Role Prediction":
 # ═══════════════════════════════════════════════════════
 # PAGE 3 — INTERVIEW PRACTICE
 # ═══════════════════════════════════════════════════════
-elif page == "🎤 Interview Practice":
+elif page == "🎤 Interview":
 
-    st.title("🎤 Interview Practice")
-    st.markdown("Practice with AI-generated questions from your own resume. Get instant feedback on your answers.")
+    st.markdown("""
+    <div class="page-hero">
+        <h1>Interview Practice</h1>
+        <p>Practice with AI-generated questions from your own resume</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    if not uploaded_file:
-        st.info("👈 Please upload your resume PDF from the sidebar first.")
+    has_pdf = st.session_state.resume_text != ""
+    has_role = st.session_state.target_role.strip() != ""
+
+    if not has_pdf:
+        current_step = 0
+    elif not has_role:
+        current_step = 1
+    else:
+        current_step = 2
+
+    render_stepper(["Upload Resume", "Target Role", "Generate Questions"], current_step)
+
+    if not has_pdf:
+        render_upload_step()
         st.stop()
 
-    role = target_role if target_role else "Software Engineer"
-    st.caption(f"Generating questions for: **{role}**  *(Set target role in sidebar)*")
+    st.markdown(f"""
+    <div class="pdf-preview" style="max-width:720px;margin:0 auto 18px">
+        <div class="pdf-icon">PDF</div>
+        <div>
+            <div class="pdf-name">{st.session_state.resume_filename}</div>
+            <div class="pdf-meta">Resume loaded successfully</div>
+        </div>
+        <div class="pdf-status">✓ Ready</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    if st.button("🎯 Generate My Interview Questions", type="primary"):
-        with st.spinner("Crafting personalized questions from your resume..."):
-            st.session_state.questions = generate_interview_questions(
-                st.session_state.resume_text,
-                role
-            )
+    role = render_role_step(required=False)
+    final_role = role if role else "Software Engineer"
+
+    st.markdown(f"""
+    <div class="wizard-card">
+        <div class="wizard-step-label">Step 3 of 3</div>
+        <div class="wizard-title">🎯 Generate Interview Questions</div>
+        <div class="wizard-sub">For role: <strong style="color:#a78bfa">{final_role}</strong></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    btn_col = st.columns([1, 2, 1])[1]
+    with btn_col:
+        if st.button("🎯 Generate Questions", type="primary", use_container_width=True):
+            with st.spinner("Crafting personalized questions from your resume..."):
+                st.session_state.questions = generate_interview_questions(
+                    st.session_state.resume_text,
+                    final_role
+                )
+            st.rerun()
 
     if st.session_state.questions:
         q_data = st.session_state.questions
-
         if "error" in q_data:
             st.error(f"❌ {q_data['error']}")
             st.stop()
 
         tab1, tab2, tab3 = st.tabs(["⚙️ Technical", "🧠 Behavioral", "💬 HR Round"])
 
-        # ── Technical Questions ──
         with tab1:
-            st.markdown("Answer these questions and get instant AI feedback on your response.")
+            st.markdown("Answer these questions and get instant AI feedback.")
             for i, q in enumerate(q_data.get("technical_questions", [])):
                 diff = q.get("difficulty", "Medium")
                 diff_class = diff.lower()
-
                 st.markdown(f"""
                 <div class="q-card">
                     <div class="q-meta">
@@ -614,9 +1093,7 @@ elif page == "🎤 Interview Practice":
 
                 with st.expander(f"✍️ Type your answer for Q{i+1}"):
                     user_answer = st.text_area(
-                        "Your answer:",
-                        key=f"tech_ans_{i}",
-                        height=130,
+                        "Your answer:", key=f"tech_ans_{i}", height=130,
                         placeholder="Type your answer here in detail..."
                     )
                     if st.button("📊 Get AI Feedback", key=f"tech_btn_{i}"):
@@ -639,7 +1116,6 @@ elif page == "🎤 Interview Practice":
                                     </div>
                                 </div>""", unsafe_allow_html=True)
 
-        # ── Behavioral Questions ──
         with tab2:
             st.markdown("Use the **STAR method**: Situation → Task → Action → Result")
             for i, q in enumerate(q_data.get("behavioral_questions", [])):
@@ -653,9 +1129,7 @@ elif page == "🎤 Interview Practice":
 
                 with st.expander(f"✍️ Answer Q{i+1}"):
                     user_answer = st.text_area(
-                        "Your answer:",
-                        key=f"beh_ans_{i}",
-                        height=130,
+                        "Your answer:", key=f"beh_ans_{i}", height=130,
                         placeholder="Situation: ...\nTask: ...\nAction: ...\nResult: ..."
                     )
                     if st.button("📊 Get Feedback", key=f"beh_btn_{i}"):
@@ -678,7 +1152,6 @@ elif page == "🎤 Interview Practice":
                                     </div>
                                 </div>""", unsafe_allow_html=True)
 
-        # ── HR Questions ──
         with tab3:
             st.markdown("Common HR questions — think through your answers out loud.")
             for i, q in enumerate(q_data.get("hr_questions", [])):
@@ -689,57 +1162,60 @@ elif page == "🎤 Interview Practice":
                     </div>
                     <div class="q-text"><strong>Q{i+1}:</strong> {q}</div>
                 </div>""", unsafe_allow_html=True)
+
+
 # ═══════════════════════════════════════════════════════
 # PAGE 4 — ATS RESUME BUILDER
 # ═══════════════════════════════════════════════════════
-elif page == "✨ ATS Resume Builder":
+elif page == "✨ Builder":
 
-    st.title("✨ ATS Resume Builder")
-    st.markdown("AI rewrites your entire resume optimized for your target role — then generates a downloadable PDF.")
+    st.markdown("""
+    <div class="page-hero">
+        <h1>ATS Resume Builder</h1>
+        <p>AI injects missing keywords into your resume — downloadable as a clean PDF</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    if not uploaded_file:
-        st.info("👈 Please upload your resume PDF from the sidebar first.")
+    has_pdf = st.session_state.resume_text != ""
+    has_role = st.session_state.target_role.strip() != ""
+
+    if not has_pdf:
+        current_step = 0
+    elif not has_role:
+        current_step = 1
+    else:
+        current_step = 2
+
+    render_stepper(["Upload Resume", "Target Role", "Generate PDF"], current_step)
+
+    if not has_pdf:
+        render_upload_step()
         st.stop()
 
-    if not target_role:
-        st.warning("⚠️ Please enter a **Target Job Role** in the sidebar before optimizing.")
+    st.markdown(f"""
+    <div class="pdf-preview" style="max-width:720px;margin:0 auto 18px">
+        <div class="pdf-icon">PDF</div>
+        <div>
+            <div class="pdf-name">{st.session_state.resume_filename}</div>
+            <div class="pdf-meta">Resume loaded successfully</div>
+        </div>
+        <div class="pdf-status">✓ Ready</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    role = render_role_step(required=True)
+    if not role:
+        st.warning("⚠️ Target role is required for ATS optimization.")
         st.stop()
 
-    # Show what will happen
-    st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ What AI Will Do</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="wizard-card">
+        <div class="wizard-step-label">Step 3 of 3</div>
+        <div class="wizard-title">🚀 Optimize & Generate PDF</div>
+        <div class="wizard-sub">AI will inject missing keywords and produce a downloadable PDF.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown("""
-        <div class="sugg-card">
-            <div class="sugg-num">1</div>
-            <div>
-                <div class="sugg-area">Rewrite Content</div>
-                <div class="sugg-text">Every bullet rewritten with strong action verbs and quantified results.</div>
-            </div>
-        </div>""", unsafe_allow_html=True)
-    with col2:
-        st.markdown("""
-        <div class="sugg-card">
-            <div class="sugg-num">2</div>
-            <div>
-                <div class="sugg-area">Inject Keywords</div>
-                <div class="sugg-text">Missing ATS keywords for your target role added naturally throughout.</div>
-            </div>
-        </div>""", unsafe_allow_html=True)
-    with col3:
-        st.markdown("""
-        <div class="sugg-card">
-            <div class="sugg-num">3</div>
-            <div>
-                <div class="sugg-area">Generate PDF</div>
-                <div class="sugg-text">Clean professional PDF ready to download and submit to recruiters.</div>
-            </div>
-        </div>""", unsafe_allow_html=True)
-
-    st.markdown("")
-
-    # Get missing keywords from analysis if it exists
     missing_kw = []
     if st.session_state.analysis:
         missing_kw = st.session_state.analysis.get("missing_skills", [])
@@ -748,33 +1224,31 @@ elif page == "✨ ATS Resume Builder":
     missing_kw = list(set(missing_kw))
 
     if missing_kw:
-        st.caption(f"📌 Keywords to inject: " + "  ".join([f"`{k}`" for k in missing_kw[:8]]))
+        st.caption("📌 Keywords to inject: " + "  ".join([f"`{k}`" for k in missing_kw[:8]]))
     else:
         st.caption("💡 Run Resume Analysis first to detect missing keywords automatically.")
 
-    # Optimize button
-    if st.button("🚀 Optimize & Generate PDF", type="primary"):
-        with st.spinner("🤖 AI is rewriting your resume... this takes 15–20 seconds"):
-            optimized = optimize_resume(
-                st.session_state.resume_text,
-                target_role,
-                missing_kw
-            )
-            st.session_state.optimized_resume = optimized
+    btn_col = st.columns([1, 2, 1])[1]
+    with btn_col:
+        if st.button("🚀 Optimize & Generate PDF", type="primary", use_container_width=True):
+            with st.spinner("🤖 AI is rewriting your resume... ~15-20s"):
+                optimized = optimize_resume(
+                    st.session_state.resume_text,
+                    role,
+                    missing_kw
+                )
+                st.session_state.optimized_resume = optimized
+            st.rerun()
 
-    # Show result
     if "optimized_resume" in st.session_state and st.session_state.optimized_resume:
         data = st.session_state.optimized_resume
-
         if "error" in data:
             st.error(f"❌ Error: {data['error']}")
             st.stop()
 
         st.success("✅ Resume optimized successfully!")
 
-        # ── Preview the rewritten content ──
         st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Preview — Rewritten Content</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
-
         tab1, tab2, tab3, tab4 = st.tabs(["📝 Summary", "🛠 Skills", "💼 Experience", "🔨 Projects"])
 
         with tab1:
@@ -786,8 +1260,7 @@ elif page == "✨ ATS Resume Builder":
             </div>""", unsafe_allow_html=True)
 
         with tab2:
-            skills = data.get("skills", [])
-            for skill in skills:
+            for skill in data.get("skills", []):
                 st.markdown(f'<span class="tag tag-purple">✓ {skill}</span>', unsafe_allow_html=True)
 
         with tab3:
@@ -813,13 +1286,12 @@ elif page == "✨ ATS Resume Builder":
                     {''.join([f'<div class="q-text">• {b}</div>' for b in proj.get('bullets',[])])}
                 </div>""", unsafe_allow_html=True)
 
-        # ── Generate & Download PDF ──
         st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Download Your Optimized Resume</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
 
         with st.spinner("Generating PDF..."):
             pdf_bytes = build_resume_pdf(data)
 
-        fname = f"{data.get('name','Resume').replace(' ','_')}_{target_role.replace(' ','_')}_ATS.pdf"
+        fname = f"{data.get('name','Resume').replace(' ','_')}_{role.replace(' ','_')}_ATS.pdf"
 
         st.download_button(
             label="⬇️ Download Optimized Resume PDF",
@@ -830,4 +1302,10 @@ elif page == "✨ ATS Resume Builder":
             use_container_width=True
         )
 
-        st.caption("✅ This PDF is ATS-friendly — clean fonts, no tables in main content, keyword-optimized.")               
+        st.caption("✅ This PDF is ATS-friendly — clean fonts, keyword-optimized, recruiter-ready.")
+
+
+# ─────────────────────────────────────────────
+# FOOTER
+# ─────────────────────────────────────────────
+st.markdown('<div class="footer-credit">Built by S.F.A. · Powered by Gemini AI</div>', unsafe_allow_html=True)
