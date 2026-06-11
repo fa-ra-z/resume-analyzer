@@ -705,14 +705,14 @@ def render_upload_step():
     <div class="wizard-card">
         <div class="wizard-step-label">Step 1 of 3</div>
         <div class="wizard-title">📎 Upload your resume</div>
-        <div class="wizard-sub">Drop your PDF below — we'll extract everything automatically.</div>
+        <div class="wizard-sub">Drop your file below — PDF, Word, Image, or Text. We'll handle the rest.</div>
     </div>
     """, unsafe_allow_html=True)
 
     uploaded = st.file_uploader(
         "Drop your resume here — PDF, Word, Image, or Text",
         type=["pdf", "docx", "doc", "rtf", "txt",
-            "png", "jpg", "jpeg", "webp", "bmp", "tiff"],
+              "png", "jpg", "jpeg", "webp", "bmp", "tiff"],
         label_visibility="collapsed",
         key="main_uploader",
         help="Supports PDF, DOCX, DOC, RTF, TXT, and image files (scanned resumes auto-OCR'd)"
@@ -722,7 +722,7 @@ def render_upload_step():
         # New file uploaded — extract and rerun to move to next step
         if (st.session_state.resume_text == ""
                 or st.session_state.resume_filename != uploaded.name):
-            with st.spinner("Reading PDF..."):
+            with st.spinner("Reading your file..."):
                 st.session_state.resume_text = extract_text(uploaded)
                 st.session_state.resume_filename = uploaded.name
             # ✅ FORCE RERUN so the wizard advances to Step 2
@@ -730,19 +730,11 @@ def render_upload_step():
 
         # Show preview card (only shown briefly before rerun)
         size_kb = round(uploaded.size / 1024, 1)
+        file_ext = uploaded.name.rsplit(".", 1)[-1].upper() if "." in uploaded.name else "FILE"
+
         st.markdown(f"""
         <div class="pdf-preview">
-    file_ext = uploaded.name.rsplit(".", 1)[-1].upper() if "." in uploaded.name else "FILE"
-    st.markdown(f"""
-    <div class="pdf-preview">
-        <div class="pdf-icon">{file_ext[:4]}</div>
-        <div>
-            <div class="pdf-name">{uploaded.name}</div>
-            <div class="pdf-meta">{size_kb} KB · Ready for analysis</div>
-        </div>
-        <div class="pdf-status">✓ Loaded</div>
-    </div>
-    """, unsafe_allow_html=True)
+            <div class="pdf-icon">{file_ext[:4]}</div>
             <div>
                 <div class="pdf-name">{uploaded.name}</div>
                 <div class="pdf-meta">{size_kb} KB · Ready for analysis</div>
