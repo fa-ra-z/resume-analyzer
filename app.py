@@ -2,7 +2,7 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 
-from modules.pdf_parser import extract_text_from_pdf
+from modules.file_parser import extract_text
 from modules.analyzer import (
     analyze_resume,
     predict_job_roles,
@@ -710,10 +710,12 @@ def render_upload_step():
     """, unsafe_allow_html=True)
 
     uploaded = st.file_uploader(
-        "Drop PDF here or click to browse",
-        type=["pdf"],
+        "Drop your resume here — PDF, Word, Image, or Text",
+        type=["pdf", "docx", "doc", "rtf", "txt",
+            "png", "jpg", "jpeg", "webp", "bmp", "tiff"],
         label_visibility="collapsed",
-        key="main_uploader"
+        key="main_uploader",
+        help="Supports PDF, DOCX, DOC, RTF, TXT, and image files (scanned resumes auto-OCR'd)"
     )
 
     if uploaded is not None:
@@ -721,7 +723,7 @@ def render_upload_step():
         if (st.session_state.resume_text == ""
                 or st.session_state.resume_filename != uploaded.name):
             with st.spinner("Reading PDF..."):
-                st.session_state.resume_text = extract_text_from_pdf(uploaded)
+                st.session_state.resume_text = extract_text(uploaded)
                 st.session_state.resume_filename = uploaded.name
             # ✅ FORCE RERUN so the wizard advances to Step 2
             st.rerun()
@@ -730,7 +732,17 @@ def render_upload_step():
         size_kb = round(uploaded.size / 1024, 1)
         st.markdown(f"""
         <div class="pdf-preview">
-            <div class="pdf-icon">PDF</div>
+    file_ext = uploaded.name.rsplit(".", 1)[-1].upper() if "." in uploaded.name else "FILE"
+    st.markdown(f"""
+    <div class="pdf-preview">
+        <div class="pdf-icon">{file_ext[:4]}</div>
+        <div>
+            <div class="pdf-name">{uploaded.name}</div>
+            <div class="pdf-meta">{size_kb} KB · Ready for analysis</div>
+        </div>
+        <div class="pdf-status">✓ Loaded</div>
+    </div>
+    """, unsafe_allow_html=True)
             <div>
                 <div class="pdf-name">{uploaded.name}</div>
                 <div class="pdf-meta">{size_kb} KB · Ready for analysis</div>
