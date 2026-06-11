@@ -1,12 +1,25 @@
+"""
+Professional Multi-Page Resume PDF Builder
+───────────────────────────────────────────
+Generates beautifully formatted, ATS-friendly resumes that can span
+multiple pages cleanly with:
+  • Repeating header on pages 2+
+  • Page numbers in footer
+  • Smart page breaks (never splits a job's title from its bullets)
+  • Perfect bullet alignment using fixed-width Tables
+  • Clean typography, consistent spacing
+"""
+
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer,
-    HRFlowable, Table, TableStyle, KeepTogether, PageBreak
+    BaseDocTemplate, Paragraph, Spacer,
+    HRFlowable, Table, TableStyle, KeepTogether,
+    PageBreak, Frame, PageTemplate
 )
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_JUSTIFY
+from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER, TA_JUSTIFY
 import io
 import html
 
@@ -19,6 +32,17 @@ C_ACCENT  = colors.HexColor("#2563EB")
 C_BODY    = colors.HexColor("#1F1F1F")
 C_MUTED   = colors.HexColor("#4B5563")
 C_RULE    = colors.HexColor("#D1D5DB")
+C_FOOTER  = colors.HexColor("#9CA3AF")
+
+
+# ─────────────────────────────────────────────────────────────
+# PAGE GEOMETRY
+# ─────────────────────────────────────────────────────────────
+LEFT_M   = 16 * mm
+RIGHT_M  = 16 * mm
+TOP_M_P1 = 14 * mm          # First page top margin
+TOP_M_PN = 28 * mm          # Pages 2+ — extra space for running header
+BOT_M    = 18 * mm          # Bottom margin (room for footer)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -74,35 +98,18 @@ def get_styles():
 
 
 # ─────────────────────────────────────────────────────────────
-# CORE BULLET BUILDER — using fixed-width Table (100% reliable)
+# CORE BULLET BUILDER — fixed-width table = perfect alignment
 # ─────────────────────────────────────────────────────────────
 def _bullet_row(text: str, styles: dict, W: float, justify: bool = True) -> Table:
-    """
-    Builds ONE bullet line as a 2-column table:
-      [ blue dot (10pt wide) ] [ text fills the rest ]
-
-    This GUARANTEES perfect alignment because the dot occupies a fixed
-    column width — wrapped text NEVER drifts under the dot.
-    """
     safe = html.escape(text)
-
     dot_style = ParagraphStyle(
-        "dot",
-        fontName="Helvetica-Bold",
-        fontSize=10,
-        textColor=C_ACCENT,
-        leading=14,
-        alignment=TA_LEFT,
+        "dot", fontName="Helvetica-Bold", fontSize=10,
+        textColor=C_ACCENT, leading=14, alignment=TA_LEFT,
     )
-
     text_style = styles["body_just"] if justify else styles["body"]
-
-    DOT_W = 10  # fixed width in points
+    DOT_W = 10
     row = Table(
-        [[
-            Paragraph("\u2022", dot_style),
-            Paragraph(safe, text_style),
-        ]],
+        [[Paragraph("\u2022", dot_style), Paragraph(safe, text_style)]],
         colWidths=[DOT_W, W - DOT_W],
     )
     row.setStyle(TableStyle([
@@ -115,29 +122,19 @@ def _bullet_row(text: str, styles: dict, W: float, justify: bool = True) -> Tabl
     return row
 
 
-# ─────────────────────────────────────────────────────────────
-# SECTION HEADER
-# ─────────────────────────────────────────────────────────────
 def _section_header(title: str, styles: dict, W: float) -> list:
     return [
         Spacer(1, 4),
         Paragraph(title.upper(), styles["section"]),
-        HRFlowable(
-            width=W, thickness=0.6, color=C_RULE,
-            spaceBefore=1, spaceAfter=4,
-        ),
+        HRFlowable(width=W, thickness=0.6, color=C_RULE,
+                   spaceBefore=1, spaceAfter=4),
     ]
 
 
-# ─────────────────────────────────────────────────────────────
-# TWO-COLUMN HEADER ROW (title left, date right)
-# ─────────────────────────────────────────────────────────────
 def _title_date_row(left_text: str, right_text: str, styles: dict, W: float) -> Table:
     t = Table(
-        [[
-            Paragraph(left_text, styles["role_title"]),
-            Paragraph(right_text, styles["meta"]),
-        ]],
+        [[Paragraph(left_text, styles["role_title"]),
+          Paragraph(right_text, styles["meta"])]],
         colWidths=[W * 0.70, W * 0.30],
     )
     t.setStyle(TableStyle([
@@ -151,31 +148,138 @@ def _title_date_row(left_text: str, right_text: str, styles: dict, W: float) -> 
 
 
 # ─────────────────────────────────────────────────────────────
+# RUNNING HEADER + FOOTER (drawn on canvas, not in flowables)
+# ─────────────────────────────────────────────────────────────
+class _ResumeDocTemplate(BaseDocTemplate):
+    """
+    Custom doc template that:
+      - Uses a smaller top margin on page 1 (full header is in flowables)
+      - Uses a larger top margin on pages 2+ (room for running header)
+      - Draws a compact running header on pages 2+
+      - Draws "Page X" footer on every page
+    """
+    def __init__(self, filename, resume_data, **kwargs):
+        self.resume_data = resume_data
+        BaseDocTemplate.__init__(self, filename, **kwargs)
+
+        W = A4[0] - LEFT_M - RIGHT_M
+
+        # Frame for PAGE 1 — bigger usable area, small top margin
+        frame_first = Frame(
+            LEFT_M, BOT_M,
+            W,
+            A4[1] - TOP_M_P1 - BOT_M,
+            leftPadding=0, rightPadding=0,
+            topPadding=0, bottomPadding=0,
+            id="first",
+        )
+
+        # Frame for PAGES 2+ — pushed down to leave room for header
+        frame_later = Frame(
+            LEFT_M, BOT_M,
+            W,
+            A4[1] - TOP_M_PN - BOT_M,
+            leftPadding=0, rightPadding=0,
+            topPadding=0, bottomPadding=0,
+            id="later",
+        )
+
+        self.addPageTemplates([
+            PageTemplate(id="First", frames=frame_first,
+                         onPage=self._draw_first_page),
+            PageTemplate(id="Later", frames=frame_later,
+                         onPage=self._draw_later_page),
+        ])
+
+    # ── Switch from first to later template automatically ──
+    def handle_pageBegin(self):
+        self._handle_pageBegin()
+        if self.page == 1:
+            self._handle_nextPageTemplate("Later")
+
+    # ── Page 1: only footer ─────────────────────────────
+    def _draw_first_page(self, canvas, doc):
+        self._draw_footer(canvas, doc)
+
+    # ── Pages 2+: running header + footer ───────────────
+    def _draw_later_page(self, canvas, doc):
+        self._draw_running_header(canvas)
+        self._draw_footer(canvas, doc)
+
+    # ── Running header (top of pages 2+) ────────────────
+    def _draw_running_header(self, canvas):
+        canvas.saveState()
+        name = (self.resume_data.get("name") or "").strip()
+        role = (self.resume_data.get("target_role") or "").strip()
+
+        y_top = A4[1] - 12 * mm
+
+        # Name (bold)
+        if name:
+            canvas.setFont("Helvetica-Bold", 11)
+            canvas.setFillColor(C_NAME)
+            canvas.drawString(LEFT_M, y_top, name)
+
+        # Role (right side, muted)
+        if role:
+            canvas.setFont("Helvetica", 9)
+            canvas.setFillColor(C_MUTED)
+            canvas.drawRightString(A4[0] - RIGHT_M, y_top, role)
+
+        # Thin accent rule under header
+        canvas.setStrokeColor(C_RULE)
+        canvas.setLineWidth(0.5)
+        canvas.line(LEFT_M, y_top - 4, A4[0] - RIGHT_M, y_top - 4)
+
+        # Small accent dot on left (subtle branding)
+        canvas.setFillColor(C_ACCENT)
+        canvas.circle(LEFT_M - 4, y_top + 3, 1.2, fill=1, stroke=0)
+
+        canvas.restoreState()
+
+    # ── Footer (every page) ─────────────────────────────
+    def _draw_footer(self, canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 8)
+        canvas.setFillColor(C_FOOTER)
+
+        # Page number — centered
+        page_text = f"Page {doc.page}"
+        canvas.drawCentredString(A4[0] / 2, 10 * mm, page_text)
+
+        # Name on bottom-left (subtle)
+        name = (self.resume_data.get("name") or "").strip()
+        if name:
+            canvas.drawString(LEFT_M, 10 * mm, name)
+
+        canvas.restoreState()
+
+
+# ─────────────────────────────────────────────────────────────
 # MAIN PDF BUILDER
 # ─────────────────────────────────────────────────────────────
 def build_resume_pdf(resume_data: dict) -> bytes:
     buffer = io.BytesIO()
     styles = get_styles()
 
-    LEFT, RIGHT, TOP, BOTTOM = 16 * mm, 16 * mm, 14 * mm, 14 * mm
-
-    doc = SimpleDocTemplate(
+    doc = _ResumeDocTemplate(
         buffer,
+        resume_data=resume_data,
         pagesize=A4,
-        leftMargin=LEFT, rightMargin=RIGHT,
-        topMargin=TOP, bottomMargin=BOTTOM,
+        leftMargin=LEFT_M, rightMargin=RIGHT_M,
+        topMargin=TOP_M_P1, bottomMargin=BOT_M,
         title=resume_data.get("name", "Resume"),
         author=resume_data.get("name", ""),
         subject=resume_data.get("target_role", "Resume"),
         creator="ResumeIQ",
-        allowSplitting=1,   # ← Allow content to flow to multiple pages
+        allowSplitting=1,
     )
 
-    W = A4[0] - LEFT - RIGHT
+    W = A4[0] - LEFT_M - RIGHT_M
     story = []
 
     # ═══════════════════════════════════════════════════════
-    # HEADER
+    # PAGE 1 HEADER — full version
     # ═══════════════════════════════════════════════════════
     name     = (resume_data.get("name") or "").strip()
     tagline  = (resume_data.get("target_role") or "").strip()
@@ -188,10 +292,8 @@ def build_resume_pdf(resume_data: dict) -> bytes:
     if name:
         story.append(Paragraph(html.escape(name), styles["name"]))
 
-    story.append(HRFlowable(
-        width=W, thickness=2, color=C_ACCENT,
-        spaceBefore=0, spaceAfter=3,
-    ))
+    story.append(HRFlowable(width=W, thickness=2, color=C_ACCENT,
+                            spaceBefore=0, spaceAfter=3))
 
     if tagline:
         story.append(Paragraph(html.escape(tagline), styles["tagline"]))
@@ -201,19 +303,19 @@ def build_resume_pdf(resume_data: dict) -> bytes:
     if phone:    contact_parts.append(html.escape(phone))
     if location: contact_parts.append(html.escape(location))
     if linkedin:
-        label = linkedin.split("linkedin.com/in/")[-1].rstrip("/") if "linkedin.com" in linkedin else linkedin
+        label = linkedin.split("linkedin.com/in/")[-1].rstrip("/") \
+                if "linkedin.com" in linkedin else linkedin
         contact_parts.append(f"LinkedIn: {html.escape(label)}")
     if github:
-        label = github.split("github.com/")[-1].rstrip("/") if "github.com" in github else github
+        label = github.split("github.com/")[-1].rstrip("/") \
+                if "github.com" in github else github
         contact_parts.append(f"GitHub: {html.escape(label)}")
 
     if contact_parts:
         story.append(Paragraph("  \u2022  ".join(contact_parts), styles["contact"]))
 
-    story.append(HRFlowable(
-        width=W, thickness=0.5, color=C_RULE,
-        spaceBefore=2, spaceAfter=0,
-    ))
+    story.append(HRFlowable(width=W, thickness=0.5, color=C_RULE,
+                            spaceBefore=2, spaceAfter=0))
 
     # ═══════════════════════════════════════════════════════
     # SUMMARY
@@ -224,17 +326,15 @@ def build_resume_pdf(resume_data: dict) -> bytes:
         story.append(Paragraph(html.escape(summary), styles["summary"]))
 
     # ═══════════════════════════════════════════════════════
-    # SKILLS — 3-column table, perfect alignment
+    # SKILLS — 3-column grid, perfectly aligned
     # ═══════════════════════════════════════════════════════
     skills = [s.strip() for s in (resume_data.get("skills") or []) if s and s.strip()]
     if skills:
         story += _section_header("Technical Skills", styles, W)
 
         COLS = 3
-        # Fill column-by-column (newspaper style)
         n = len(skills)
         rows_count = (n + COLS - 1) // COLS
-        # Pad
         while len(skills) < rows_count * COLS:
             skills.append("")
 
@@ -255,16 +355,12 @@ def build_resume_pdf(resume_data: dict) -> bytes:
                 if s:
                     cell = Table(
                         [[
-                            Paragraph(
-                                "\u2022",
+                            Paragraph("\u2022",
                                 ParagraphStyle("d", fontName="Helvetica-Bold",
-                                    fontSize=10, textColor=C_ACCENT, leading=14)
-                            ),
-                            Paragraph(
-                                html.escape(s),
+                                    fontSize=10, textColor=C_ACCENT, leading=14)),
+                            Paragraph(html.escape(s),
                                 ParagraphStyle("s", fontName="Helvetica",
-                                    fontSize=9.5, textColor=C_BODY, leading=14)
-                            ),
+                                    fontSize=9.5, textColor=C_BODY, leading=14)),
                         ]],
                         colWidths=[DOT_W, col_w - DOT_W - 8],
                     )
@@ -291,7 +387,7 @@ def build_resume_pdf(resume_data: dict) -> bytes:
         story.append(skill_table)
 
     # ═══════════════════════════════════════════════════════
-    # EXPERIENCE
+    # EXPERIENCE — smart page breaks (never orphan a job title)
     # ═══════════════════════════════════════════════════════
     experience = resume_data.get("experience") or []
     if experience:
@@ -307,17 +403,14 @@ def build_resume_pdf(resume_data: dict) -> bytes:
             if company:
                 left_text += f" \u2014 {company}"
 
-            # Header row (title + date) — KEEP together with first bullet
-            header_block = [
-                _title_date_row(left_text, duration, styles, W)
-            ]
-            if bullets:
-                header_block.append(_bullet_row(bullets[0], styles, W))
-
+            # Keep title + first 2 bullets together (so we never orphan a title)
+            header_block = [_title_date_row(left_text, duration, styles, W)]
+            for b in bullets[:2]:
+                header_block.append(_bullet_row(b, styles, W))
             story.append(KeepTogether(header_block))
 
-            # Remaining bullets — allowed to flow to next page if needed
-            for b in bullets[1:]:
+            # Remaining bullets can flow to next page if needed
+            for b in bullets[2:]:
                 story.append(_bullet_row(b, styles, W))
 
             story.append(Spacer(1, 4))
@@ -339,12 +432,11 @@ def build_resume_pdf(resume_data: dict) -> bytes:
                 header_text += f'  <font size="8.5" color="#4B5563"><i>{tech}</i></font>'
 
             header_block = [Paragraph(header_text, styles["role_title"])]
-            if bullets:
-                header_block.append(_bullet_row(bullets[0], styles, W))
-
+            for b in bullets[:2]:
+                header_block.append(_bullet_row(b, styles, W))
             story.append(KeepTogether(header_block))
 
-            for b in bullets[1:]:
+            for b in bullets[2:]:
                 story.append(_bullet_row(b, styles, W))
 
             story.append(Spacer(1, 4))
@@ -364,10 +456,8 @@ def build_resume_pdf(resume_data: dict) -> bytes:
 
             block = [
                 Table(
-                    [[
-                        Paragraph(f"<b>{degree}</b>", styles["edu_degree"]),
-                        Paragraph(year, styles["meta"]),
-                    ]],
+                    [[Paragraph(f"<b>{degree}</b>", styles["edu_degree"]),
+                      Paragraph(year, styles["meta"])]],
                     colWidths=[W * 0.70, W * 0.30],
                     style=TableStyle([
                         ("VALIGN",        (0, 0), (-1, -1), "BOTTOM"),
@@ -399,7 +489,7 @@ def build_resume_pdf(resume_data: dict) -> bytes:
         story.append(Spacer(1, 4))
 
     # ═══════════════════════════════════════════════════════
-    # ACHIEVEMENTS (optional — supported if AI returns them)
+    # ACHIEVEMENTS (optional)
     # ═══════════════════════════════════════════════════════
     achievements = [a.strip() for a in (resume_data.get("achievements") or []) if a and a.strip()]
     if achievements:
@@ -419,6 +509,7 @@ def build_resume_pdf(resume_data: dict) -> bytes:
             styles["body"]
         ))
 
+    # ── Build the PDF ─────────────────────────────────────
     doc.build(story)
     buffer.seek(0)
     return buffer.getvalue()

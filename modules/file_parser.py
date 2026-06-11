@@ -1,27 +1,30 @@
 """
-Universal Resume File Parser
-─────────────────────────────
-Accepts ANY common resume format and returns clean, AI-ready text.
+Universal Resume File Parser — MULTI-PAGE OPTIMIZED
+─────────────────────────────────────────────────────
+Accepts ANY common resume format and returns clean, AI-ready text
+from ALL pages (handles 1, 2, 3+ page resumes flawlessly).
 
 Supported formats
 ─────────────────
-✓ PDF (text-based)              .pdf
-✓ PDF (scanned / image-based)   .pdf  → OCR fallback
-✓ Microsoft Word (modern)       .docx
-✓ Microsoft Word (legacy)       .doc
-✓ Rich Text Format              .rtf
-✓ Plain Text                    .txt
-✓ Images (resumes as photos)    .png .jpg .jpeg .webp .bmp .tiff
+✓ PDF (text-based, any number of pages)    .pdf
+✓ PDF (scanned / image-based, multi-page)  .pdf  → OCR fallback per page
+✓ Microsoft Word (modern)                  .docx
+✓ Microsoft Word (legacy)                  .doc
+✓ Rich Text Format                         .rtf
+✓ Plain Text                               .txt
+✓ Images (resumes as photos)               .png .jpg .jpeg .webp .bmp .tiff
 
 Features
 ────────
-✓ Auto file-type detection (by extension AND magic bytes)
-✓ Multi-column PDF layout detection
-✓ Hyperlink extraction (LinkedIn, GitHub, portfolio)
-✓ Smart OCR fallback for scanned PDFs
-✓ Image preprocessing for better OCR accuracy
+✓ Reads EVERY page (no page limit)
+✓ Auto file-type detection (magic bytes + extension)
+✓ Multi-column PDF layout detection per page
+✓ Per-page OCR fallback for scanned PDFs
+✓ Hyperlink extraction from all pages
 ✓ Ligature, smart-quote, and bullet normalization
 ✓ Page-number / header / footer stripping
+✓ Image preprocessing for better OCR accuracy
+✓ Cross-page paragraph rejoining
 ✓ Optional rich metadata extraction
 """
 
@@ -77,11 +80,10 @@ SUPPORTED_EXTENSIONS = {
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"}
 
-# Magic bytes for file-type detection (when extension is unreliable)
 MAGIC_BYTES = {
     b"%PDF":               "pdf",
-    b"PK\x03\x04":         "docx",      # DOCX = zip archive
-    b"\xD0\xCF\x11\xE0":   "doc",       # legacy DOC (OLE2)
+    b"PK\x03\x04":         "docx",
+    b"\xD0\xCF\x11\xE0":   "doc",
     b"{\\rtf":             "rtf",
     b"\x89PNG":            "png",
     b"\xFF\xD8\xFF":       "jpg",
@@ -97,10 +99,7 @@ MAGIC_BYTES = {
 # PUBLIC ENTRY POINT
 # ═════════════════════════════════════════════════════════════
 def extract_text_from_pdf(uploaded_file, return_metadata: bool = False):
-    """
-    Backward-compatible alias for extract_text().
-    Despite the name, this now accepts ALL supported file types.
-    """
+    """Backward-compatible alias — now accepts ALL file types."""
     return extract_text(uploaded_file, return_metadata=return_metadata)
 
 
@@ -108,21 +107,7 @@ def extract_text(
     uploaded_file: Union[BinaryIO, bytes],
     return_metadata: bool = False,
 ):
-    """
-    Universal text extractor for any resume file format.
-
-    Parameters
-    ----------
-    uploaded_file : Streamlit UploadedFile, file-like object, or raw bytes
-    return_metadata : bool
-        If True, returns a dict with text + extracted metadata.
-        If False (default), returns clean text string.
-
-    Returns
-    -------
-    str | dict
-    """
-    # ── Read raw bytes ───────────────────────────────────
+    """Universal text extractor — reads ALL pages of any resume format."""
     if hasattr(uploaded_file, "read"):
         raw_bytes = uploaded_file.read()
         filename = getattr(uploaded_file, "name", "") or ""
@@ -135,16 +120,15 @@ def extract_text(
     if not raw_bytes:
         return _empty_result(return_metadata, "Empty file")
 
-    # ── Detect file type ─────────────────────────────────
     file_type = _detect_file_type(raw_bytes, filename)
 
-    # ── Route to correct extractor ───────────────────────
     extracted_text = ""
     links_found = set()
+    page_count = 0
 
     try:
         if file_type == "pdf":
-            extracted_text, links_found = _extract_pdf(raw_bytes)
+            extracted_text, links_found, page_count = _extract_pdf(raw_bytes)
 
         elif file_type == "docx":
             extracted_text, links_found = _extract_docx(raw_bytes)
@@ -170,16 +154,14 @@ def extract_text(
     except Exception as e:
         return _empty_result(return_metadata, f"Extraction failed: {str(e)}")
 
-    # ── Inject any links discovered but missing in text ──
     extracted_text = _inject_missing_links(extracted_text, links_found)
-
-    # ── Apply full cleanup pipeline ──────────────────────
     clean = _clean_text(extracted_text)
 
     if return_metadata:
         return {
             "text":         clean,
             "file_type":    file_type,
+            "page_count":   page_count,
             "word_count":   len(clean.split()),
             "char_count":   len(clean),
             "links_found":  sorted(links_found),
@@ -196,25 +178,20 @@ def extract_text(
 # FILE TYPE DETECTION
 # ═════════════════════════════════════════════════════════════
 def _detect_file_type(raw_bytes: bytes, filename: str) -> str:
-    """Detect file type using magic bytes first, then file extension."""
-    # 1. Magic bytes
     header = raw_bytes[:8]
     for magic, ftype in MAGIC_BYTES.items():
         if header.startswith(magic):
-            # Special case: WEBP is in RIFF container
             if magic == b"RIFF" and b"WEBP" in raw_bytes[:16]:
                 return "webp"
             elif magic == b"RIFF":
                 continue
             return ftype
 
-    # 2. Filename extension
     if filename:
         ext = "." + filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
         if ext in SUPPORTED_EXTENSIONS:
             return ext.lstrip(".")
 
-    # 3. Try to detect text
     try:
         raw_bytes[:1000].decode("utf-8")
         return "txt"
@@ -225,42 +202,70 @@ def _detect_file_type(raw_bytes: bytes, filename: str) -> str:
 
 
 # ═════════════════════════════════════════════════════════════
-# EXTRACTORS — one per file type
+# PDF EXTRACTION — MULTI-PAGE OPTIMIZED
 # ═════════════════════════════════════════════════════════════
-
-# ── PDF (with OCR fallback) ──────────────────────────────────
 def _extract_pdf(raw_bytes: bytes) -> tuple:
-    """Extract text from PDF. Auto-falls back to OCR for scanned PDFs."""
+    """
+    Extract text from EVERY page of the PDF.
+    Auto-detects scanned pages and applies OCR per page.
+    """
     doc = fitz.open(stream=raw_bytes, filetype="pdf")
     pages = []
     all_links = set()
+    pages_needing_ocr = []
 
+    # ── First pass: extract text from every page ─────────
     for page_num, page in enumerate(doc):
-        page_text = _extract_pdf_page(page)
-        page_text = _strip_header_footer(page_text)
-        pages.append(page_text)
+        try:
+            page_text = _extract_pdf_page(page)
+            page_text = _strip_header_footer(page_text)
 
-        for link in page.get_links():
-            uri = link.get("uri", "")
-            if uri:
-                all_links.add(uri.strip())
+            # If this individual page has almost no text → mark for OCR
+            if len(page_text.strip()) < 30:
+                pages_needing_ocr.append(page_num)
+                page_text = ""   # placeholder
 
-    full_text = "\n\n".join(pages).strip()
+            pages.append(page_text)
 
-    # If almost no text was found → it's likely a scanned PDF → use OCR
-    if len(full_text) < 100:
-        ocr_text = _ocr_pdf_pages(doc)
-        if ocr_text and len(ocr_text) > len(full_text):
-            full_text = ocr_text
+            # Extract hyperlinks from this page
+            for link in page.get_links():
+                uri = link.get("uri", "")
+                if uri:
+                    all_links.add(uri.strip())
+
+        except Exception:
+            pages.append("")
+            pages_needing_ocr.append(page_num)
+
+    page_count = len(pages)
+
+    # ── Second pass: OCR any pages that returned no text ─
+    if pages_needing_ocr:
+        ocr_results = _ocr_specific_pages(doc, pages_needing_ocr)
+        for page_num, ocr_text in ocr_results.items():
+            if ocr_text and len(ocr_text.strip()) > len(pages[page_num].strip()):
+                pages[page_num] = _strip_header_footer(ocr_text)
+
+    # ── If ENTIRE document is empty → full OCR fallback ──
+    combined = "\n\n".join(pages).strip()
+    if len(combined) < 100:
+        full_ocr = _ocr_pdf_pages(doc)
+        if full_ocr and len(full_ocr) > len(combined):
+            combined = full_ocr
+
+    # ── Smart cross-page joining ─────────────────────────
+    final_text = _smart_join_pages(pages)
+    if not final_text.strip():
+        final_text = combined
 
     doc.close()
-    return full_text, all_links
+    return final_text, all_links, page_count
 
 
 def _extract_pdf_page(page) -> str:
     """Extract one PDF page in correct reading order (multi-column aware)."""
     try:
-        blocks = page.get_text("dict")["blocks"]
+        blocks = page.get_text("dict", flags=fitz.TEXT_PRESERVE_LIGATURES)["blocks"]
     except Exception:
         return page.get_text("text")
 
@@ -309,8 +314,60 @@ def _extract_pdf_page(page) -> str:
     return "\n".join(lines)
 
 
+def _smart_join_pages(pages: list) -> str:
+    """
+    Join pages intelligently — if a page ends mid-sentence and the next
+    page starts with lowercase, glue them. Otherwise keep paragraph break.
+    """
+    if not pages:
+        return ""
+
+    result = pages[0].rstrip()
+    for next_page in pages[1:]:
+        next_page = next_page.strip()
+        if not next_page:
+            continue
+
+        prev_ends_mid_sentence = (
+            result and result[-1] not in ".!?:;)\"]'"
+            and not result.endswith(("\n\n",))
+        )
+        next_starts_lower = next_page[0].islower() if next_page else False
+
+        if prev_ends_mid_sentence and next_starts_lower:
+            # Continuation — join with space
+            result += " " + next_page
+        else:
+            # New section — paragraph break
+            result += "\n\n" + next_page
+
+    return result
+
+
+def _ocr_specific_pages(doc, page_nums: list) -> dict:
+    """Run OCR only on specific pages that need it (efficient)."""
+    pytesseract = _try_import("pytesseract")
+    PIL = _try_import("PIL")
+    if not pytesseract or not PIL:
+        return {}
+
+    from PIL import Image
+    results = {}
+    for page_num in page_nums:
+        try:
+            page = doc[page_num]
+            pix = page.get_pixmap(dpi=300)
+            img = Image.open(io.BytesIO(pix.tobytes("png")))
+            img = _preprocess_image_for_ocr(img)
+            text = pytesseract.image_to_string(img, lang="eng")
+            results[page_num] = text
+        except Exception:
+            continue
+    return results
+
+
 def _ocr_pdf_pages(doc) -> str:
-    """Render each PDF page as image and OCR it."""
+    """OCR every page (used when full document is empty)."""
     pytesseract = _try_import("pytesseract")
     PIL = _try_import("PIL")
     if not pytesseract or not PIL:
@@ -320,7 +377,7 @@ def _ocr_pdf_pages(doc) -> str:
     pages_text = []
     for page in doc:
         try:
-            pix = page.get_pixmap(dpi=300)   # high-res for accuracy
+            pix = page.get_pixmap(dpi=300)
             img = Image.open(io.BytesIO(pix.tobytes("png")))
             img = _preprocess_image_for_ocr(img)
             text = pytesseract.image_to_string(img, lang="eng")
@@ -330,12 +387,12 @@ def _ocr_pdf_pages(doc) -> str:
     return "\n\n".join(pages_text)
 
 
-# ── DOCX ─────────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════
+# DOCX
+# ═════════════════════════════════════════════════════════════
 def _extract_docx(raw_bytes: bytes) -> tuple:
-    """Extract text + hyperlinks from a .docx file."""
     docx = _try_import("docx")
     if not docx:
-        # Fall back to docx2txt if python-docx not available
         return _extract_docx_via_docx2txt(raw_bytes), set()
 
     from docx import Document
@@ -344,20 +401,17 @@ def _extract_docx(raw_bytes: bytes) -> tuple:
     parts = []
     links = set()
 
-    # Paragraphs
     for para in doc.paragraphs:
         text = para.text.strip()
         if text:
             parts.append(text)
 
-    # Tables (skills are often in tables)
     for table in doc.tables:
         for row in table.rows:
             row_text = " | ".join(cell.text.strip() for cell in row.cells if cell.text.strip())
             if row_text:
                 parts.append(row_text)
 
-    # Hyperlinks (stored in document.xml.rels)
     try:
         for rel in doc.part.rels.values():
             if "hyperlink" in rel.reltype.lower():
@@ -371,7 +425,6 @@ def _extract_docx(raw_bytes: bytes) -> tuple:
 
 
 def _extract_docx_via_docx2txt(raw_bytes: bytes) -> str:
-    """Secondary DOCX extractor using docx2txt."""
     docx2txt = _try_import("docx2txt")
     if not docx2txt:
         return ""
@@ -381,10 +434,10 @@ def _extract_docx_via_docx2txt(raw_bytes: bytes) -> str:
         return ""
 
 
-# ── Legacy DOC ───────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════
+# LEGACY DOC
+# ═════════════════════════════════════════════════════════════
 def _extract_doc(raw_bytes: bytes) -> str:
-    """Extract text from legacy .doc (Word 97-2003) files."""
-    # Try docx2txt first (handles some .doc files)
     docx2txt = _try_import("docx2txt")
     if docx2txt:
         try:
@@ -394,7 +447,6 @@ def _extract_doc(raw_bytes: bytes) -> str:
         except Exception:
             pass
 
-    # Fall back to textract if available (more reliable for .doc)
     textract = _try_import("textract")
     if textract:
         try:
@@ -408,15 +460,12 @@ def _extract_doc(raw_bytes: bytes) -> str:
         except Exception:
             pass
 
-    # Last resort: olefile manual extraction
     return _extract_doc_fallback(raw_bytes)
 
 
 def _extract_doc_fallback(raw_bytes: bytes) -> str:
-    """Crude .doc text extraction by stripping binary noise."""
     try:
         text = raw_bytes.decode("utf-8", errors="ignore")
-        # Keep only printable ASCII and common whitespace
         text = re.sub(r"[^\x20-\x7E\n\r\t]+", " ", text)
         text = re.sub(r"\s{3,}", "\n", text)
         return text if len(text.strip()) > 50 else ""
@@ -424,9 +473,10 @@ def _extract_doc_fallback(raw_bytes: bytes) -> str:
         return ""
 
 
-# ── RTF ──────────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════
+# RTF / TXT / IMAGE
+# ═════════════════════════════════════════════════════════════
 def _extract_rtf(raw_bytes: bytes) -> str:
-    """Extract text from .rtf files."""
     striprtf = _try_import("striprtf")
     if striprtf:
         try:
@@ -435,21 +485,17 @@ def _extract_rtf(raw_bytes: bytes) -> str:
             return rtf_to_text(text)
         except Exception:
             pass
-
-    # Fallback: regex-strip RTF control codes
     try:
         text = raw_bytes.decode("utf-8", errors="ignore")
-        text = re.sub(r"\\[a-z]+\d* ?", "", text)   # remove control words
-        text = re.sub(r"[{}]", "", text)            # remove braces
-        text = re.sub(r"\\\'[0-9a-f]{2}", "", text) # remove hex escapes
+        text = re.sub(r"\\[a-z]+\d* ?", "", text)
+        text = re.sub(r"[{}]", "", text)
+        text = re.sub(r"\\\'[0-9a-f]{2}", "", text)
         return text
     except Exception:
         return ""
 
 
-# ── TXT ──────────────────────────────────────────────────────
 def _extract_txt(raw_bytes: bytes) -> str:
-    """Decode plain text file using best-guess encoding."""
     for encoding in ("utf-8", "utf-16", "latin-1", "cp1252"):
         try:
             return raw_bytes.decode(encoding)
@@ -458,9 +504,7 @@ def _extract_txt(raw_bytes: bytes) -> str:
     return raw_bytes.decode("utf-8", errors="ignore")
 
 
-# ── IMAGE (OCR) ──────────────────────────────────────────────
 def _extract_image(raw_bytes: bytes) -> str:
-    """OCR text from an image of a resume."""
     pytesseract = _try_import("pytesseract")
     PIL = _try_import("PIL")
     if not pytesseract or not PIL:
@@ -476,18 +520,13 @@ def _extract_image(raw_bytes: bytes) -> str:
 
 
 def _preprocess_image_for_ocr(img):
-    """Enhance image quality for better OCR accuracy."""
     from PIL import Image, ImageOps, ImageFilter
-    # Convert to grayscale
     img = img.convert("L")
-    # Increase contrast
     img = ImageOps.autocontrast(img, cutoff=2)
-    # Upscale small images
     if img.width < 1500:
         scale = 1500 / img.width
         new_size = (int(img.width * scale), int(img.height * scale))
         img = img.resize(new_size, Image.LANCZOS)
-    # Slight sharpen
     img = img.filter(ImageFilter.SHARPEN)
     return img
 
@@ -498,22 +537,21 @@ def _preprocess_image_for_ocr(img):
 def _empty_result(return_metadata: bool, error_msg: str):
     if return_metadata:
         return {
-            "text": "", "file_type": "", "word_count": 0,
-            "char_count": 0, "links_found": [], "emails": [],
-            "phones": [], "linkedin": "", "github": "",
-            "error": error_msg,
+            "text": "", "file_type": "", "page_count": 0,
+            "word_count": 0, "char_count": 0,
+            "links_found": [], "emails": [], "phones": [],
+            "linkedin": "", "github": "", "error": error_msg,
         }
     return ""
 
 
 def _strip_header_footer(text: str) -> str:
-    """Remove page numbers and footer noise."""
     cleaned = []
     for line in text.split("\n"):
         s = line.strip()
-        if re.fullmatch(r"\d{1,3}", s):                                 continue
-        if re.fullmatch(r"(?i)page\s*\d+(\s*of\s*\d+)?", s):            continue
-        if re.fullmatch(r"\d+\s*/\s*\d+", s):                           continue
+        if re.fullmatch(r"\d{1,3}", s):                          continue
+        if re.fullmatch(r"(?i)page\s*\d+(\s*of\s*\d+)?", s):     continue
+        if re.fullmatch(r"\d+\s*/\s*\d+", s):                    continue
         cleaned.append(line)
     return "\n".join(cleaned)
 
@@ -545,7 +583,7 @@ def _clean_text(text: str) -> str:
         text = text.replace(smart, ascii_char)
     for b in BULLET_CHARS:
         text = text.replace(b, "•")
-    text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)        # hyphenation fix
+    text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = "\n".join(line.rstrip() for line in text.split("\n"))
     text = re.sub(r"\n{3,}", "\n\n", text)
@@ -558,7 +596,6 @@ def _clean_text(text: str) -> str:
     return text.strip()
 
 
-# ── Metadata extractors ──────────────────────────────────────
 def _find_emails(text: str) -> list:
     pattern = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
     return list(dict.fromkeys(re.findall(pattern, text)))
