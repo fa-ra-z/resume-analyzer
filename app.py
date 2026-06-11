@@ -812,6 +812,15 @@ if page == "📄 Analysis":
         <div class="pdf-status">✓ Ready</div>
     </div>
     """, unsafe_allow_html=True)
+    # 🐛 DEBUG — remove after verifying
+    with st.expander("🔍 Debug: View extracted text from your resume"):
+        st.caption(f"Total characters extracted: **{len(st.session_state.resume_text)}**")
+        st.caption(f"Total words extracted: **{len(st.session_state.resume_text.split())}**")
+        st.text_area(
+            "Extracted text (this is what the AI sees):",
+            st.session_state.resume_text,
+            height=400
+        )
 
     # ── STEP 2: Role ──
     role = render_role_step(required=False)
