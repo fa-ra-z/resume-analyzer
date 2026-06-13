@@ -1371,15 +1371,6 @@ elif page == "✨ Tailored Resume":
 
     # ── STEP 1: Master Resume Upload ──
     if not has_pdf:
-        st.markdown("""
-        <div class="wizard-card">
-            <div class="wizard-step-label">Step 1 of 3</div>
-            <div class="wizard-title">📎 Upload your Master Resume</div>
-            <div class="wizard-sub">
-                This is your complete career profile. Upload once — reuse for every job application.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
         render_upload_step()
         st.stop()
 
