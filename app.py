@@ -8,7 +8,8 @@ from modules.analyzer import (
     predict_job_roles,
     generate_interview_questions,
     evaluate_answer,
-    optimize_resume
+    optimize_resume,
+    tailor_resume_to_job,   # ← NEW
 )
 from modules.resume_builder import build_resume_pdf
 from modules.ats_scorer import calculate_rule_based_ats
@@ -643,6 +644,12 @@ if "questions" not in st.session_state:
     st.session_state.questions = None
 if "current_page" not in st.session_state:
     st.session_state.current_page = "📄 Analysis"
+if "tailored_resume" not in st.session_state:
+    st.session_state.tailored_resume = None
+if "job_description_text" not in st.session_state:
+    st.session_state.job_description_text = ""
+if "show_web_view" not in st.session_state:
+    st.session_state.show_web_view = False
 
 
 # ─────────────────────────────────────────────
@@ -661,7 +668,7 @@ with nav_col1:
 with nav_col2:
     page = st.radio(
         "navigation",
-        ["📄 Analysis", "💼 Job Roles", "🎤 Interview", "✨ Builder"],
+        ["📄 Analysis", "💼 Job Roles", "🎤 Interview", "✨ Tailored Resume"],
         horizontal=True,
         label_visibility="collapsed",
         key="nav_radio"
@@ -768,6 +775,175 @@ def render_role_step(required=True):
     )
     st.session_state.target_role = role
     return role
+
+def render_web_resume(data: dict):
+    """Beautifully renders the tailored resume as a polished web view."""
+    name = data.get("name", "")
+    role = data.get("target_role", "")
+    email = data.get("email", "")
+    phone = data.get("phone", "")
+    location = data.get("location", "")
+    linkedin = data.get("linkedin", "")
+    github = data.get("github", "")
+    summary = data.get("summary", "")
+    skills = data.get("skills", [])
+    experience = data.get("experience", [])
+    projects = data.get("projects", [])
+    education = data.get("education", [])
+    certifications = data.get("certifications", [])
+
+    # Build contact line
+    contact_items = []
+    if email:    contact_items.append(f'<a href="mailto:{email}" style="color:#a5b4fc;text-decoration:none">📧 {email}</a>')
+    if phone:    contact_items.append(f'<span style="color:#cbd5e1">📱 {phone}</span>')
+    if location: contact_items.append(f'<span style="color:#cbd5e1">📍 {location}</span>')
+    if linkedin: contact_items.append(f'<a href="{linkedin}" target="_blank" style="color:#a5b4fc;text-decoration:none">💼 LinkedIn</a>')
+    if github:   contact_items.append(f'<a href="{github}" target="_blank" style="color:#a5b4fc;text-decoration:none">💻 GitHub</a>')
+    contact_html = '  •  '.join(contact_items)
+
+    # Skills HTML
+    skills_html = "".join([
+        f'<span style="display:inline-block;background:linear-gradient(135deg,#1e1b4b,#312e81);'
+        f'color:#c7d2fe;padding:6px 14px;border-radius:20px;font-size:0.82rem;'
+        f'margin:4px;border:1px solid #4338ca;font-weight:500">{s}</span>'
+        for s in skills
+    ])
+
+    # Experience HTML
+    exp_html = ""
+    for exp in experience:
+        bullets_html = "".join([
+            f'<li style="margin-bottom:8px;line-height:1.6;color:#cbd5e1">{b}</li>'
+            for b in exp.get("bullets", [])
+        ])
+        exp_html += f"""
+        <div style="margin-bottom:24px;padding:20px;background:linear-gradient(135deg,#0f0f18,#14142a);
+                    border:1px solid #1e1e30;border-radius:14px;border-left:4px solid #6366f1">
+            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;margin-bottom:6px">
+                <div>
+                    <div style="font-size:1.1rem;font-weight:700;color:#f1f5f9">{exp.get('title','')}</div>
+                    <div style="font-size:0.92rem;color:#a78bfa;font-weight:500">{exp.get('company','')}</div>
+                </div>
+                <div style="font-size:0.82rem;color:#94a3b8;font-style:italic;background:#1e1b4b;
+                           padding:4px 12px;border-radius:14px">{exp.get('duration','')}</div>
+            </div>
+            <ul style="margin:12px 0 0 18px;padding:0">{bullets_html}</ul>
+        </div>
+        """
+
+    # Projects HTML
+    proj_html = ""
+    for proj in projects:
+        bullets_html = "".join([
+            f'<li style="margin-bottom:6px;line-height:1.6;color:#cbd5e1">{b}</li>'
+            for b in proj.get("bullets", [])
+        ])
+        proj_html += f"""
+        <div style="margin-bottom:18px;padding:18px;background:#0f0f18;border:1px solid #1e1e30;
+                    border-radius:12px;border-left:3px solid #38bdf8">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+                <div style="font-size:1rem;font-weight:700;color:#f1f5f9">{proj.get('name','')}</div>
+                <div style="font-size:0.78rem;color:#7dd3fc;background:#0c1a3a;padding:3px 10px;
+                           border-radius:12px;border:1px solid #1e3a5f">{proj.get('tech','')}</div>
+            </div>
+            <ul style="margin:8px 0 0 18px;padding:0">{bullets_html}</ul>
+        </div>
+        """
+
+    # Education HTML
+    edu_html = ""
+    for edu in education:
+        grade_html = f'<div style="font-size:0.82rem;color:#94a3b8;margin-top:4px">Grade: {edu.get("grade","")}</div>' if edu.get("grade") else ""
+        edu_html += f"""
+        <div style="margin-bottom:14px;padding:16px;background:#0f0f18;border:1px solid #1e1e30;
+                    border-radius:10px">
+            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap">
+                <div>
+                    <div style="font-size:1rem;font-weight:700;color:#f1f5f9">{edu.get('degree','')}</div>
+                    <div style="font-size:0.88rem;color:#a78bfa">{edu.get('institution','')}</div>
+                    {grade_html}
+                </div>
+                <div style="font-size:0.82rem;color:#94a3b8;font-style:italic">{edu.get('year','')}</div>
+            </div>
+        </div>
+        """
+
+    # Certifications HTML
+    cert_html = ""
+    if certifications:
+        certs_items = "".join([
+            f'<li style="margin-bottom:6px;color:#cbd5e1;line-height:1.6">{c}</li>'
+            for c in certifications
+        ])
+        cert_html = f"""
+        <div style="margin-top:24px">
+            <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.1em;
+                       background:linear-gradient(135deg,#818cf8,#38bdf8);
+                       -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                       font-weight:700;margin-bottom:10px">✦ Certifications</div>
+            <ul style="margin-left:18px;padding:0">{certs_items}</ul>
+        </div>
+        """
+
+    # Section header style
+    sh = (
+        'font-size:0.85rem;text-transform:uppercase;letter-spacing:0.1em;'
+        'background:linear-gradient(135deg,#818cf8,#38bdf8);'
+        '-webkit-background-clip:text;-webkit-text-fill-color:transparent;'
+        'font-weight:700;margin:28px 0 14px 0;'
+    )
+
+    # FULL WEB RESUME
+    web_html = f"""
+    <div style="background:linear-gradient(135deg,#0a0a14,#0f0f1a);padding:40px;
+                border-radius:20px;border:1px solid #1e1e30;margin:20px 0;
+                box-shadow:0 20px 60px rgba(0,0,0,0.4)">
+
+        <!-- HEADER -->
+        <div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #312e81;margin-bottom:24px">
+            <h1 style="font-size:2.4rem;font-weight:800;
+                       background:linear-gradient(135deg,#ffffff,#94a3b8);
+                       -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                       margin:0 0 6px 0">{name}</h1>
+            <div style="font-size:1.1rem;color:#a78bfa;font-weight:500;margin-bottom:14px">{role}</div>
+            <div style="font-size:0.88rem;color:#94a3b8">{contact_html}</div>
+        </div>
+
+        <!-- SUMMARY -->
+        <div style="{sh}">✦ Professional Summary</div>
+        <div style="background:linear-gradient(135deg,#0c1526,#0f1a2e);border:1px solid #1e3a5f;
+                    border-radius:12px;padding:18px 22px;color:#cbd5e1;line-height:1.7;
+                    font-size:0.95rem">{summary}</div>
+
+        <!-- SKILLS -->
+        <div style="{sh}">✦ Core Skills</div>
+        <div>{skills_html}</div>
+
+        <!-- EXPERIENCE -->
+        <div style="{sh}">✦ Professional Experience</div>
+        {exp_html}
+
+        <!-- PROJECTS -->
+        <div style="{sh}">✦ Key Projects</div>
+        {proj_html}
+
+        <!-- EDUCATION -->
+        <div style="{sh}">✦ Education</div>
+        {edu_html}
+
+        <!-- CERTIFICATIONS -->
+        {cert_html}
+
+        <!-- FOOTER -->
+        <div style="margin-top:32px;padding-top:20px;border-top:1px solid #1e1e30;
+                    text-align:center;color:#6b7280;font-size:0.78rem">
+            Tailored by <strong style="color:#a78bfa">ResumeIQ</strong> · 
+            Optimized for ATS · Recruiter-ready
+        </div>
+    </div>
+    """
+
+    st.markdown(web_html, unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════
@@ -1210,136 +1386,247 @@ elif page == "🎤 Interview":
 
 
 # ═══════════════════════════════════════════════════════
-# PAGE 4 — ATS RESUME BUILDER
+# PAGE 4 — TAILORED RESUME FOR JOB
 # ═══════════════════════════════════════════════════════
-elif page == "✨ Builder":
+elif page == "✨ Tailored Resume":
 
     st.markdown("""
     <div class="page-hero">
-        <h1>ATS Resume Builder</h1>
-        <p>AI injects missing keywords into your resume — downloadable as a clean PDF</p>
+        <h1>Tailored Resume for Job</h1>
+        <p>Paste any job description — AI rewrites your resume to match it perfectly</p>
     </div>
     """, unsafe_allow_html=True)
 
     has_pdf = st.session_state.resume_text != ""
-    has_role = st.session_state.target_role.strip() != ""
+    has_jd = st.session_state.job_description_text.strip() != ""
 
     if not has_pdf:
         current_step = 0
-    elif not has_role:
+    elif not has_jd:
         current_step = 1
     else:
         current_step = 2
 
-    render_stepper(["Upload Resume", "Target Role", "Generate PDF"], current_step)
+    render_stepper(
+        ["Master Resume", "Job Description", "Tailored Resume"],
+        current_step
+    )
 
+    # ── STEP 1: Master Resume Upload ──
     if not has_pdf:
+        st.markdown("""
+        <div class="wizard-card">
+            <div class="wizard-step-label">Step 1 of 3</div>
+            <div class="wizard-title">📎 Upload your Master Resume</div>
+            <div class="wizard-sub">
+                This is your complete career profile. Upload once — reuse for every job application.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         render_upload_step()
         st.stop()
 
+    # Show loaded resume preview
     st.markdown(f"""
     <div class="pdf-preview" style="max-width:720px;margin:0 auto 18px">
-        <div class="pdf-icon">PDF</div>
+        <div class="pdf-icon">CV</div>
         <div>
             <div class="pdf-name">{st.session_state.resume_filename}</div>
-            <div class="pdf-meta">Resume loaded successfully</div>
+            <div class="pdf-meta">Master career profile loaded</div>
         </div>
         <div class="pdf-status">✓ Ready</div>
     </div>
     """, unsafe_allow_html=True)
 
-    role = render_role_step(required=True)
-    if not role:
-        st.warning("⚠️ Target role is required for ATS optimization.")
-        st.stop()
-
+    # ── STEP 2: Job Description Input ──
     st.markdown("""
     <div class="wizard-card">
-        <div class="wizard-step-label">Step 3 of 3</div>
-        <div class="wizard-title">🚀 Optimize & Generate PDF</div>
-        <div class="wizard-sub">AI will inject missing keywords and produce a downloadable PDF.</div>
+        <div class="wizard-step-label">Step 2 of 3</div>
+        <div class="wizard-title">📋 Paste the Job Description</div>
+        <div class="wizard-sub">
+            Copy the entire job posting — requirements, responsibilities, qualifications — and paste below.
+            AI will use this to tailor your resume perfectly.
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    missing_kw = []
-    if st.session_state.analysis:
-        missing_kw = st.session_state.analysis.get("missing_skills", [])
-    if st.session_state.ats_local:
-        missing_kw += st.session_state.ats_local.get("missing_keywords", [])
-    missing_kw = list(set(missing_kw))
+    jd_text = st.text_area(
+        "Job Description",
+        value=st.session_state.job_description_text,
+        height=280,
+        placeholder=(
+            "Paste the full job description here...\n\n"
+            "Include:\n"
+            "• Job title and company\n"
+            "• Required skills and qualifications\n"
+            "• Responsibilities\n"
+            "• Nice-to-have skills\n\n"
+            "The more detail, the better the AI can tailor your resume."
+        ),
+        label_visibility="collapsed",
+        key="jd_input"
+    )
+    st.session_state.job_description_text = jd_text
 
-    if missing_kw:
-        st.caption("📌 Keywords to inject: " + "  ".join([f"`{k}`" for k in missing_kw[:8]]))
-    else:
-        st.caption("💡 Run Resume Analysis first to detect missing keywords automatically.")
+    if not jd_text.strip():
+        st.caption("👆 Paste the job description above to continue.")
+        st.stop()
+
+    word_count = len(jd_text.split())
+    st.caption(f"📊 Job description: **{word_count} words** loaded")
+
+    # ── STEP 3: Generate Tailored Resume ──
+    st.markdown("""
+    <div class="wizard-card">
+        <div class="wizard-step-label">Step 3 of 3</div>
+        <div class="wizard-title">✨ Generate Tailored Resume</div>
+        <div class="wizard-sub">
+            AI will analyze the JD and rewrite your resume to match it perfectly —
+            keyword optimized, ATS-friendly, ready to apply.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     btn_col = st.columns([1, 2, 1])[1]
     with btn_col:
-        if st.button("🚀 Optimize & Generate PDF", type="primary", use_container_width=True):
-            with st.spinner("🤖 AI is rewriting your resume... ~15-20s"):
-                optimized = optimize_resume(
+        if st.button("🎯 Generate Tailored Resume", type="primary", use_container_width=True):
+            with st.spinner("🤖 AI is tailoring your resume to this exact job... ~20s"):
+                tailored = tailor_resume_to_job(
                     st.session_state.resume_text,
-                    role,
-                    missing_kw
+                    jd_text
                 )
-                st.session_state.optimized_resume = optimized
+                st.session_state.tailored_resume = tailored
+                st.session_state.show_web_view = False
             st.rerun()
 
-    if "optimized_resume" in st.session_state and st.session_state.optimized_resume:
-        data = st.session_state.optimized_resume
+    # ═══════════════════════════════════════════════════════
+    # RESULTS
+    # ═══════════════════════════════════════════════════════
+    if st.session_state.tailored_resume:
+        data = st.session_state.tailored_resume
+
         if "error" in data:
             st.error(f"❌ Error: {data['error']}")
             st.stop()
 
-        st.success("✅ Resume optimized successfully!")
+        # ── Match Score & Key Info ──
+        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Tailoring Results</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Preview — Rewritten Content</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
-        tab1, tab2, tab3, tab4 = st.tabs(["📝 Summary", "🛠 Skills", "💼 Experience", "🔨 Projects"])
+        match_score = data.get("match_score", 0)
+        score_color = "#4ade80" if match_score >= 75 else "#fbbf24" if match_score >= 55 else "#f87171"
+        company = data.get("company_name", "this role")
+        target = data.get("target_role", "")
 
-        with tab1:
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col1:
             st.markdown(f"""
-            <div class="sugg-card" style="display:block">
-                <div class="sugg-text" style="font-size:0.9rem;line-height:1.7;color:#e2e8f0">
-                    {data.get('summary', '')}
-                </div>
+            <div class="score-card">
+                <div class="score-icon" style="background:#052e16">🎯</div>
+                <div class="score-num" style="color:{score_color}">{match_score}%</div>
+                <div class="score-label">Match Score</div>
+            </div>""", unsafe_allow_html=True)
+        with col2:
+            st.markdown(f"""
+            <div class="score-card">
+                <div class="score-icon" style="background:#1e1b4b">💼</div>
+                <div class="score-num" style="font-size:1.2rem">{target[:30]}</div>
+                <div class="score-label">Target Role</div>
+            </div>""", unsafe_allow_html=True)
+        with col3:
+            st.markdown(f"""
+            <div class="score-card">
+                <div class="score-icon" style="background:#1c1002">🏢</div>
+                <div class="score-num" style="font-size:1.2rem">{(company or 'N/A')[:30]}</div>
+                <div class="score-label">Company</div>
             </div>""", unsafe_allow_html=True)
 
-        with tab2:
-            for skill in data.get("skills", []):
-                st.markdown(f'<span class="tag tag-purple">✓ {skill}</span>', unsafe_allow_html=True)
+        st.caption(f"💡 {data.get('match_reason', '')}")
 
-        with tab3:
-            for exp in data.get("experience", []):
+        # ── Key Highlights ──
+        if data.get("key_highlights"):
+            st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Why You\'re a Strong Fit</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
+            for i, highlight in enumerate(data.get("key_highlights", [])):
                 st.markdown(f"""
-                <div class="q-card">
-                    <div class="q-meta">
-                        <span class="tag tag-blue">{exp.get('company','')}</span>
-                        <span class="tag tag-amber">{exp.get('duration','')}</span>
+                <div class="sugg-card">
+                    <div class="sugg-num">{i+1}</div>
+                    <div>
+                        <div class="sugg-text">{highlight}</div>
                     </div>
-                    <div class="q-text" style="font-weight:600;margin-bottom:8px">{exp.get('title','')}</div>
-                    {''.join([f'<div class="q-text">• {b}</div>' for b in exp.get('bullets',[])])}
                 </div>""", unsafe_allow_html=True)
 
-        with tab4:
-            for proj in data.get("projects", []):
+        # ── Keywords Injected ──
+        if data.get("jd_keywords_used"):
+            st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ JD Keywords Injected</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
+            st.caption("These keywords from the job description were naturally added to your resume:")
+            for kw in data.get("jd_keywords_used", []):
+                st.markdown(f'<span class="tag tag-purple">✓ {kw}</span>', unsafe_allow_html=True)
+
+        # ── Toggle: Web View vs Quick Preview ──
+        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Preview Your Tailored Resume</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
+
+        view_col1, view_col2 = st.columns(2)
+        with view_col1:
+            if st.button("📑 Quick Preview", use_container_width=True):
+                st.session_state.show_web_view = False
+        with view_col2:
+            if st.button("🌐 Full Web View", type="primary", use_container_width=True):
+                st.session_state.show_web_view = True
+
+        if st.session_state.show_web_view:
+            # ── BEAUTIFUL WEB VIEW ──
+            render_web_resume(data)
+        else:
+            # ── COMPACT TAB PREVIEW ──
+            tab1, tab2, tab3, tab4 = st.tabs(["📝 Summary", "🛠 Skills", "💼 Experience", "🔨 Projects"])
+
+            with tab1:
                 st.markdown(f"""
-                <div class="q-card">
-                    <div class="q-meta">
-                        <span class="tag tag-purple">{proj.get('name','')}</span>
-                        <span style="font-size:0.75rem;color:#6b7280">{proj.get('tech','')}</span>
+                <div class="sugg-card" style="display:block">
+                    <div class="sugg-text" style="font-size:0.9rem;line-height:1.7;color:#e2e8f0">
+                        {data.get('summary', '')}
                     </div>
-                    {''.join([f'<div class="q-text">• {b}</div>' for b in proj.get('bullets',[])])}
                 </div>""", unsafe_allow_html=True)
 
-        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Download Your Optimized Resume</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
+            with tab2:
+                for skill in data.get("skills", []):
+                    st.markdown(f'<span class="tag tag-purple">✓ {skill}</span>', unsafe_allow_html=True)
 
-        with st.spinner("Generating PDF..."):
+            with tab3:
+                for exp in data.get("experience", []):
+                    st.markdown(f"""
+                    <div class="q-card">
+                        <div class="q-meta">
+                            <span class="tag tag-blue">{exp.get('company','')}</span>
+                            <span class="tag tag-amber">{exp.get('duration','')}</span>
+                        </div>
+                        <div class="q-text" style="font-weight:600;margin-bottom:8px">{exp.get('title','')}</div>
+                        {''.join([f'<div class="q-text">• {b}</div>' for b in exp.get('bullets',[])])}
+                    </div>""", unsafe_allow_html=True)
+
+            with tab4:
+                for proj in data.get("projects", []):
+                    st.markdown(f"""
+                    <div class="q-card">
+                        <div class="q-meta">
+                            <span class="tag tag-purple">{proj.get('name','')}</span>
+                            <span style="font-size:0.75rem;color:#6b7280">{proj.get('tech','')}</span>
+                        </div>
+                        {''.join([f'<div class="q-text">• {b}</div>' for b in proj.get('bullets',[])])}
+                    </div>""", unsafe_allow_html=True)
+
+        # ── Download PDF ──
+        st.markdown('<div class="section-hdr"><div class="section-hdr-text">✦ Download Your Tailored Resume</div><div class="section-hdr-line"></div></div>', unsafe_allow_html=True)
+
+        with st.spinner("Generating ATS-friendly PDF..."):
             pdf_bytes = build_resume_pdf(data)
 
-        fname = f"{data.get('name','Resume').replace(' ','_')}_{role.replace(' ','_')}_ATS.pdf"
+        safe_name = data.get('name', 'Resume').replace(' ', '_')
+        safe_company = (data.get('company_name', 'Company') or 'Tailored').replace(' ', '_')
+        safe_role = data.get('target_role', 'Role').replace(' ', '_')
+        fname = f"{safe_name}_{safe_company}_{safe_role}.pdf"
 
         st.download_button(
-            label="⬇️ Download Optimized Resume PDF",
+            label="⬇️ Download Tailored Resume PDF",
             data=pdf_bytes,
             file_name=fname,
             mime="application/pdf",
@@ -1347,7 +1634,7 @@ elif page == "✨ Builder":
             use_container_width=True
         )
 
-        st.caption("✅ This PDF is ATS-friendly — clean fonts, keyword-optimized, recruiter-ready.")
+        st.caption("✅ ATS-friendly · Keyword-optimized for this exact job · Ready to send.")
 
 
 # ─────────────────────────────────────────────
