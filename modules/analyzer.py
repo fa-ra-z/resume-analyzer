@@ -166,13 +166,14 @@ def optimize_resume(resume_text: str, job_role: str, missing_keywords: list) -> 
         missing_keywords=", ".join(missing_keywords[:15])
     )
     return call_ai(prompt)
-    def tailor_resume_to_job(resume_text: str, job_description: str) -> dict:
-        """
-        Generates a perfectly tailored resume by analyzing both the
-        candidate's master resume and the target job description.
-        """
-        prompt = JOB_TAILORED_RESUME_PROMPT.format(
-            resume_text=smart_truncate(resume_text, MAX_RESUME_CHARS_OPTIMIZE),
-            job_description=job_description[:8000]   # JDs are usually 2-5k chars
-        )
-        return call_ai(prompt)
+    
+def tailor_resume_to_job(resume_text: str, job_description: str) -> dict:
+    """
+    Generates a perfectly tailored resume by analyzing both the
+    candidate's master resume and the target job description.
+    """
+    prompt = JOB_TAILORED_RESUME_PROMPT.format(
+        resume_text=smart_truncate(resume_text, MAX_RESUME_CHARS_OPTIMIZE),
+        job_description=job_description[:8000]
+    )
+    return call_ai(prompt)
