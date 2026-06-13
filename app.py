@@ -803,9 +803,7 @@ def render_web_resume(data: dict):
 
     # Skills HTML
     skills_html = "".join([
-        f'<span style="display:inline-block;background:linear-gradient(135deg,#1e1b4b,#312e81);'
-        f'color:#c7d2fe;padding:6px 14px;border-radius:20px;font-size:0.82rem;'
-        f'margin:4px;border:1px solid #4338ca;font-weight:500">{s}</span>'
+        f'<span style="display:inline-block;background:linear-gradient(135deg,#1e1b4b,#312e81);color:#c7d2fe;padding:6px 14px;border-radius:20px;font-size:0.82rem;margin:4px;border:1px solid #4338ca;font-weight:500">{s}</span>'
         for s in skills
     ])
 
@@ -816,20 +814,18 @@ def render_web_resume(data: dict):
             f'<li style="margin-bottom:8px;line-height:1.6;color:#cbd5e1">{b}</li>'
             for b in exp.get("bullets", [])
         ])
-        exp_html += f"""
-        <div style="margin-bottom:24px;padding:20px;background:linear-gradient(135deg,#0f0f18,#14142a);
-                    border:1px solid #1e1e30;border-radius:14px;border-left:4px solid #6366f1">
-            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;margin-bottom:6px">
-                <div>
-                    <div style="font-size:1.1rem;font-weight:700;color:#f1f5f9">{exp.get('title','')}</div>
-                    <div style="font-size:0.92rem;color:#a78bfa;font-weight:500">{exp.get('company','')}</div>
-                </div>
-                <div style="font-size:0.82rem;color:#94a3b8;font-style:italic;background:#1e1b4b;
-                           padding:4px 12px;border-radius:14px">{exp.get('duration','')}</div>
-            </div>
-            <ul style="margin:12px 0 0 18px;padding:0">{bullets_html}</ul>
-        </div>
-        """
+        exp_html += (
+            f'<div style="margin-bottom:24px;padding:20px;background:linear-gradient(135deg,#0f0f18,#14142a);border:1px solid #1e1e30;border-radius:14px;border-left:4px solid #6366f1">'
+            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px">'
+            f'<div>'
+            f'<div style="font-size:1.1rem;font-weight:700;color:#f1f5f9">{exp.get("title","")}</div>'
+            f'<div style="font-size:0.92rem;color:#a78bfa;font-weight:500">{exp.get("company","")}</div>'
+            f'</div>'
+            f'<div style="font-size:0.82rem;color:#94a3b8;font-style:italic;background:#1e1b4b;padding:4px 12px;border-radius:14px">{exp.get("duration","")}</div>'
+            f'</div>'
+            f'<ul style="margin:12px 0 0 18px;padding:0">{bullets_html}</ul>'
+            f'</div>'
+        )
 
     # Projects HTML
     proj_html = ""
@@ -838,35 +834,32 @@ def render_web_resume(data: dict):
             f'<li style="margin-bottom:6px;line-height:1.6;color:#cbd5e1">{b}</li>'
             for b in proj.get("bullets", [])
         ])
-        proj_html += f"""
-        <div style="margin-bottom:18px;padding:18px;background:#0f0f18;border:1px solid #1e1e30;
-                    border-radius:12px;border-left:3px solid #38bdf8">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-                <div style="font-size:1rem;font-weight:700;color:#f1f5f9">{proj.get('name','')}</div>
-                <div style="font-size:0.78rem;color:#7dd3fc;background:#0c1a3a;padding:3px 10px;
-                           border-radius:12px;border:1px solid #1e3a5f">{proj.get('tech','')}</div>
-            </div>
-            <ul style="margin:8px 0 0 18px;padding:0">{bullets_html}</ul>
-        </div>
-        """
+        proj_html += (
+            f'<div style="margin-bottom:18px;padding:18px;background:#0f0f18;border:1px solid #1e1e30;border-radius:12px;border-left:3px solid #38bdf8">'
+            f'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:8px">'
+            f'<div style="font-size:1rem;font-weight:700;color:#f1f5f9">{proj.get("name","")}</div>'
+            f'<div style="font-size:0.78rem;color:#7dd3fc;background:#0c1a3a;padding:3px 10px;border-radius:12px;border:1px solid #1e3a5f">{proj.get("tech","")}</div>'
+            f'</div>'
+            f'<ul style="margin:8px 0 0 18px;padding:0">{bullets_html}</ul>'
+            f'</div>'
+        )
 
     # Education HTML
     edu_html = ""
     for edu in education:
         grade_html = f'<div style="font-size:0.82rem;color:#94a3b8;margin-top:4px">Grade: {edu.get("grade","")}</div>' if edu.get("grade") else ""
-        edu_html += f"""
-        <div style="margin-bottom:14px;padding:16px;background:#0f0f18;border:1px solid #1e1e30;
-                    border-radius:10px">
-            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap">
-                <div>
-                    <div style="font-size:1rem;font-weight:700;color:#f1f5f9">{edu.get('degree','')}</div>
-                    <div style="font-size:0.88rem;color:#a78bfa">{edu.get('institution','')}</div>
-                    {grade_html}
-                </div>
-                <div style="font-size:0.82rem;color:#94a3b8;font-style:italic">{edu.get('year','')}</div>
-            </div>
-        </div>
-        """
+        edu_html += (
+            f'<div style="margin-bottom:14px;padding:16px;background:#0f0f18;border:1px solid #1e1e30;border-radius:10px">'
+            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap">'
+            f'<div>'
+            f'<div style="font-size:1rem;font-weight:700;color:#f1f5f9">{edu.get("degree","")}</div>'
+            f'<div style="font-size:0.88rem;color:#a78bfa">{edu.get("institution","")}</div>'
+            f'{grade_html}'
+            f'</div>'
+            f'<div style="font-size:0.82rem;color:#94a3b8;font-style:italic">{edu.get("year","")}</div>'
+            f'</div>'
+            f'</div>'
+        )
 
     # Certifications HTML
     cert_html = ""
@@ -875,73 +868,37 @@ def render_web_resume(data: dict):
             f'<li style="margin-bottom:6px;color:#cbd5e1;line-height:1.6">{c}</li>'
             for c in certifications
         ])
-        cert_html = f"""
-        <div style="margin-top:24px">
-            <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.1em;
-                       background:linear-gradient(135deg,#818cf8,#38bdf8);
-                       -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                       font-weight:700;margin-bottom:10px">✦ Certifications</div>
-            <ul style="margin-left:18px;padding:0">{certs_items}</ul>
-        </div>
-        """
+        cert_html = (
+            f'<div style="margin-top:24px">'
+            f'<div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.1em;background:linear-gradient(135deg,#818cf8,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;margin-bottom:10px">✦ Certifications</div>'
+            f'<ul style="margin-left:18px;padding:0">{certs_items}</ul>'
+            f'</div>'
+        )
 
-    # Section header style
-    sh = (
-        'font-size:0.85rem;text-transform:uppercase;letter-spacing:0.1em;'
-        'background:linear-gradient(135deg,#818cf8,#38bdf8);'
-        '-webkit-background-clip:text;-webkit-text-fill-color:transparent;'
-        'font-weight:700;margin:28px 0 14px 0;'
+    sh = 'font-size:0.85rem;text-transform:uppercase;letter-spacing:0.1em;background:linear-gradient(135deg,#818cf8,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;margin:28px 0 14px 0;'
+
+    # Build the full HTML as ONE single line (no leading whitespace = no code block)
+    web_html = (
+        f'<div style="background:linear-gradient(135deg,#0a0a14,#0f0f1a);padding:40px;border-radius:20px;border:1px solid #1e1e30;margin:20px 0;box-shadow:0 20px 60px rgba(0,0,0,0.4)">'
+        f'<div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #312e81;margin-bottom:24px">'
+        f'<h1 style="font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,#ffffff,#94a3b8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0 0 6px 0">{name}</h1>'
+        f'<div style="font-size:1.1rem;color:#a78bfa;font-weight:500;margin-bottom:14px">{role}</div>'
+        f'<div style="font-size:0.88rem;color:#94a3b8">{contact_html}</div>'
+        f'</div>'
+        f'<div style="{sh}">✦ Professional Summary</div>'
+        f'<div style="background:linear-gradient(135deg,#0c1526,#0f1a2e);border:1px solid #1e3a5f;border-radius:12px;padding:18px 22px;color:#cbd5e1;line-height:1.7;font-size:0.95rem">{summary}</div>'
+        f'<div style="{sh}">✦ Core Skills</div>'
+        f'<div>{skills_html}</div>'
+        f'<div style="{sh}">✦ Professional Experience</div>'
+        f'{exp_html}'
+        f'<div style="{sh}">✦ Key Projects</div>'
+        f'{proj_html}'
+        f'<div style="{sh}">✦ Education</div>'
+        f'{edu_html}'
+        f'{cert_html}'
+        f'<div style="margin-top:32px;padding-top:20px;border-top:1px solid #1e1e30;text-align:center;color:#6b7280;font-size:0.78rem">Tailored by <strong style="color:#a78bfa">ResumeIQ</strong> · Optimized for ATS · Recruiter-ready</div>'
+        f'</div>'
     )
-
-    # FULL WEB RESUME
-    web_html = f"""
-    <div style="background:linear-gradient(135deg,#0a0a14,#0f0f1a);padding:40px;
-                border-radius:20px;border:1px solid #1e1e30;margin:20px 0;
-                box-shadow:0 20px 60px rgba(0,0,0,0.4)">
-
-        <!-- HEADER -->
-        <div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #312e81;margin-bottom:24px">
-            <h1 style="font-size:2.4rem;font-weight:800;
-                       background:linear-gradient(135deg,#ffffff,#94a3b8);
-                       -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                       margin:0 0 6px 0">{name}</h1>
-            <div style="font-size:1.1rem;color:#a78bfa;font-weight:500;margin-bottom:14px">{role}</div>
-            <div style="font-size:0.88rem;color:#94a3b8">{contact_html}</div>
-        </div>
-
-        <!-- SUMMARY -->
-        <div style="{sh}">✦ Professional Summary</div>
-        <div style="background:linear-gradient(135deg,#0c1526,#0f1a2e);border:1px solid #1e3a5f;
-                    border-radius:12px;padding:18px 22px;color:#cbd5e1;line-height:1.7;
-                    font-size:0.95rem">{summary}</div>
-
-        <!-- SKILLS -->
-        <div style="{sh}">✦ Core Skills</div>
-        <div>{skills_html}</div>
-
-        <!-- EXPERIENCE -->
-        <div style="{sh}">✦ Professional Experience</div>
-        {exp_html}
-
-        <!-- PROJECTS -->
-        <div style="{sh}">✦ Key Projects</div>
-        {proj_html}
-
-        <!-- EDUCATION -->
-        <div style="{sh}">✦ Education</div>
-        {edu_html}
-
-        <!-- CERTIFICATIONS -->
-        {cert_html}
-
-        <!-- FOOTER -->
-        <div style="margin-top:32px;padding-top:20px;border-top:1px solid #1e1e30;
-                    text-align:center;color:#6b7280;font-size:0.78rem">
-            Tailored by <strong style="color:#a78bfa">ResumeIQ</strong> · 
-            Optimized for ATS · Recruiter-ready
-        </div>
-    </div>
-    """
 
     st.markdown(web_html, unsafe_allow_html=True)
 
