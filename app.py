@@ -17,12 +17,19 @@ from modules.ats_scorer import calculate_rule_based_ats
 # ─────────────────────────────────────────────
 # PAGE CONFIGURATION
 # ─────────────────────────────────────────────
+import os
 from PIL import Image
-logo_img = Image.open("assets/logo.png")
+
+# Safely load logo if it exists, fallback to emoji
+LOGO_PATH = "assets/logo.png"
+if os.path.exists(LOGO_PATH):
+    page_icon = Image.open(LOGO_PATH)
+else:
+    page_icon = "🎯"
 
 st.set_page_config(
     page_title="ResumeIQ — AI Resume Analyzer",
-    page_icon=logo_img,                          # ← NEW (uses your logo)
+    page_icon=page_icon,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -662,22 +669,34 @@ nav_col1, nav_col2 = st.columns([1, 3])
 
 import base64
 
-# Read & encode the logo as base64 so we can embed it in HTML
 def get_logo_base64():
-    with open("assets/logo.png", "rb") as f:
-        return base64.b64encode(f.read()).decode()
+    """Returns base64 logo if file exists, else None."""
+    if os.path.exists(LOGO_PATH):
+        with open(LOGO_PATH, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    return None
 
 logo_b64 = get_logo_base64()
 
 with nav_col1:
-    st.markdown(f"""
-    <div style="display:flex;align-items:center;gap:12px;padding-top:8px">
-        <img src="data:image/png;base64,{logo_b64}"
-             style="width:38px;height:38px;border-radius:8px;
-                    box-shadow:0 4px 14px rgba(99,102,241,0.35)" />
-        <div class="brand">ResumeIQ</div>
-    </div>
-    """, unsafe_allow_html=True)
+    if logo_b64:
+        # Show custom logo
+        st.markdown(f"""
+        <div style="display:flex;align-items:center;gap:12px;padding-top:8px">
+            <img src="data:image/png;base64,{logo_b64}"
+                 style="width:38px;height:38px;border-radius:8px;
+                        box-shadow:0 4px 14px rgba(99,102,241,0.35)" />
+            <div class="brand">ResumeIQ</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Fallback to emoji
+        st.markdown("""
+        <div style="display:flex;align-items:center;gap:10px;padding-top:8px">
+            <div class="brand-icon">🎯</div>
+            <div class="brand">ResumeIQ</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 with nav_col2:
     page = st.radio(
