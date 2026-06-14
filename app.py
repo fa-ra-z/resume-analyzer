@@ -17,9 +17,12 @@ from modules.ats_scorer import calculate_rule_based_ats
 # ─────────────────────────────────────────────
 # PAGE CONFIGURATION
 # ─────────────────────────────────────────────
+from PIL import Image
+logo_img = Image.open("assets/logo.png")
+
 st.set_page_config(
     page_title="ResumeIQ — AI Resume Analyzer",
-    page_icon="🎯",
+    page_icon=logo_img,                          # ← NEW (uses your logo)
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -657,10 +660,21 @@ if "show_web_view" not in st.session_state:
 # ─────────────────────────────────────────────
 nav_col1, nav_col2 = st.columns([1, 3])
 
+import base64
+
+# Read & encode the logo as base64 so we can embed it in HTML
+def get_logo_base64():
+    with open("assets/logo.png", "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+logo_b64 = get_logo_base64()
+
 with nav_col1:
-    st.markdown("""
-    <div style="display:flex;align-items:center;gap:10px;padding-top:8px">
-        <div class="brand-icon">🎯</div>
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;gap:12px;padding-top:8px">
+        <img src="data:image/png;base64,{logo_b64}"
+             style="width:38px;height:38px;border-radius:8px;
+                    box-shadow:0 4px 14px rgba(99,102,241,0.35)" />
         <div class="brand">ResumeIQ</div>
     </div>
     """, unsafe_allow_html=True)
