@@ -1163,10 +1163,10 @@ elif page == "💼 Job Roles":
 
         uploaded = st.file_uploader(
             "Drop your resume here — PDF, Word, Image, or Text",
-            type=["pdf", "docx", "doc", "rtf", "txt", "png", "jpg", "jpeg", "webp", "bmp", "tiff"],
+            type=["pdf", "docx", "doc", "txt", "png", "jpg", "jpeg"],
             label_visibility="collapsed",
             key="job_roles_uploader",
-            help="Supports PDF, DOCX, DOC, RTF, TXT, and image files"
+            help="Supports PDF, DOCX, DOC, TXT, and image files"
         )
 
     if uploaded is not None:
