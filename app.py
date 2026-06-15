@@ -1376,13 +1376,13 @@ elif page == "🎤 Interview":
 
 
 # ═══════════════════════════════════════════════════════
-# PAGE 4 — TAILORED RESUME FOR JOB
+# PAGE 4 — TAILORED RESUME FOR SPECIFIC JOB
 # ═══════════════════════════════════════════════════════
 elif page == "✨ Tailored Resume":
 
     st.markdown("""
     <div class="page-hero">
-        <h1>Tailored Resume for Job</h1>
+        <h1>Tailored Resume for Specific Job</h1>
         <p>Paste any job description — AI rewrites your resume to match it perfectly</p>
     </div>
     """, unsafe_allow_html=True)
