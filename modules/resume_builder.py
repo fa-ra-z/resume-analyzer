@@ -38,11 +38,11 @@ C_FOOTER  = colors.HexColor("#9CA3AF")
 # ─────────────────────────────────────────────────────────────
 # PAGE GEOMETRY
 # ─────────────────────────────────────────────────────────────
-LEFT_M   = 16 * mm
-RIGHT_M  = 16 * mm
-TOP_M_P1 = 14 * mm          # First page top margin
-TOP_M_PN = 28 * mm          # Pages 2+ — extra space for running header
-BOT_M    = 18 * mm          # Bottom margin (room for footer)
+LEFT_M   = 14 * mm
+RIGHT_M  = 14 * mm
+TOP_M_P1 = 10 * mm          # First page top margin
+TOP_M_PN = 24 * mm          # Pages 2+ — extra space for running header
+BOT_M    = 12 * mm          # Bottom margin (room for footer)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -64,11 +64,11 @@ def get_styles():
         ),
         "section": ParagraphStyle(
             "section", fontName="Helvetica-Bold", fontSize=9,
-            textColor=C_HEADING, leading=12, spaceBefore=10, spaceAfter=2,
+            textColor=C_HEADING, leading=12, spaceBefore=6, spaceAfter=2,
         ),
         "role_title": ParagraphStyle(
             "role_title", fontName="Helvetica-Bold", fontSize=10,
-            textColor=C_BODY, leading=14, spaceBefore=6, spaceAfter=0,
+            textColor=C_BODY, leading=13, spaceBefore=4, spaceAfter=0,
         ),
         "meta": ParagraphStyle(
             "meta", fontName="Helvetica-Oblique", fontSize=8.5,
@@ -413,7 +413,7 @@ def build_resume_pdf(resume_data: dict) -> bytes:
             for b in bullets[2:]:
                 story.append(_bullet_row(b, styles, W))
 
-            story.append(Spacer(1, 4))
+            story.append(Spacer(1, 2))
 
     # ═══════════════════════════════════════════════════════
     # PROJECTS
@@ -439,7 +439,7 @@ def build_resume_pdf(resume_data: dict) -> bytes:
             for b in bullets[2:]:
                 story.append(_bullet_row(b, styles, W))
 
-            story.append(Spacer(1, 4))
+            story.append(Spacer(1, 2))
 
     # ═══════════════════════════════════════════════════════
     # EDUCATION
@@ -486,7 +486,7 @@ def build_resume_pdf(resume_data: dict) -> bytes:
         story += _section_header("Certifications", styles, W)
         for cert in certs:
             story.append(_bullet_row(cert, styles, W, justify=False))
-        story.append(Spacer(1, 4))
+        story.append(Spacer(1, 2))
 
     # ═══════════════════════════════════════════════════════
     # ACHIEVEMENTS (optional)
@@ -496,7 +496,7 @@ def build_resume_pdf(resume_data: dict) -> bytes:
         story += _section_header("Achievements", styles, W)
         for a in achievements:
             story.append(_bullet_row(a, styles, W, justify=False))
-        story.append(Spacer(1, 4))
+        story.append(Spacer(1, 2))
 
     # ═══════════════════════════════════════════════════════
     # LANGUAGES (optional)
