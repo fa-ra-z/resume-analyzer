@@ -1150,8 +1150,31 @@ elif page == "💼 Job Roles":
     render_stepper(["Upload Resume", "Predict Matches"], current_step)
 
     if not has_pdf:
-        render_upload_step()
-        st.stop()
+    st.markdown("""
+    <div class="wizard-card">
+        <div class="wizard-step-label">Step 1 of 2</div>
+        <div class="wizard-title">📎 Upload your resume</div>
+        <div class="wizard-sub">Upload your resume to predict your best matching job roles.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    uploaded = st.file_uploader(
+        "Drop your resume here — PDF, Word, Image, or Text",
+        type=["pdf", "docx", "doc", "rtf", "txt", "png", "jpg", "jpeg", "webp", "bmp", "tiff"],
+        label_visibility="collapsed",
+        key="job_roles_uploader",
+        help="Supports PDF, DOCX, DOC, RTF, TXT, and image files"
+    )
+
+    if uploaded is not None:
+        if (st.session_state.resume_text == ""
+                or st.session_state.resume_filename != uploaded.name):
+            with st.spinner("Reading your file..."):
+                st.session_state.resume_text = extract_text(uploaded)
+                st.session_state.resume_filename = uploaded.name
+            st.rerun()
+
+    st.stop()
 
     st.markdown(f"""
     <div class="pdf-preview" style="max-width:720px;margin:0 auto 18px">
