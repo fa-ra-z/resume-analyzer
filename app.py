@@ -745,30 +745,33 @@ def render_upload_step():
     <div class="wizard-card">
         <div class="wizard-step-label">Step 1 of 3</div>
         <div class="wizard-title">📎 Upload your resume</div>
-        <div class="wizard-sub">Drop your file below — PDF, Word, Image, or Text. We'll handle the rest.</div>
+        <div class="wizard-sub">Drop your file below — PDF, Word, Image, or Text. Max 10 MB.</div>
     </div>
     """, unsafe_allow_html=True)
 
     uploaded = st.file_uploader(
         "Drop your resume here — PDF, Word, Image, or Text",
-        type=["pdf", "docx", "doc", "rtf", "txt",
-              "png", "jpg", "jpeg", "webp", "bmp", "tiff"],
+        type=["pdf", "docx", "doc", "txt", "png", "jpg", "jpeg"],
         label_visibility="collapsed",
         key="main_uploader",
-        help="Supports PDF, DOCX, DOC, RTF, TXT, and image files (scanned resumes auto-OCR'd)"
+        help="Max 10 MB · Supports PDF, DOCX, DOC, TXT, PNG, JPG (scanned resumes auto-OCR'd)"
     )
 
     if uploaded is not None:
+        # Check file size (10 MB max)
+        if uploaded.size > 10 * 1024 * 1024:
+            st.error("❌ File too large. Maximum size is 10 MB.")
+            st.stop()
+
         # New file uploaded — extract and rerun to move to next step
         if (st.session_state.resume_text == ""
                 or st.session_state.resume_filename != uploaded.name):
             with st.spinner("Reading your file..."):
                 st.session_state.resume_text = extract_text(uploaded)
                 st.session_state.resume_filename = uploaded.name
-            # ✅ FORCE RERUN so the wizard advances to Step 2
             st.rerun()
 
-        # Show preview card (only shown briefly before rerun)
+        # Show preview card
         size_kb = round(uploaded.size / 1024, 1)
         file_ext = uploaded.name.rsplit(".", 1)[-1].upper() if "." in uploaded.name else "FILE"
 
