@@ -1157,24 +1157,7 @@ elif page == "💼 Job Roles":
         <div class="wizard-card">
             <div class="wizard-step-label">Step 1 of 2</div>
             <div class="wizard-title">📎 Upload your resume</div>
-            <div class="wizard-sub">Upload your resume to predict your best matching job roles.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        uploaded = st.file_uploader(
-            "Drop your resume here — PDF, Word, Image, or Text",
-            type=["pdf", "docx", "doc", "txt", "png", "jpg", "jpeg"],
-            label_visibility="collapsed",
-            key="job_roles_uploader",
-            help="Supports PDF, DOCX, DOC, TXT, and image files"
-        )
-
-    if not has_pdf:
-        st.markdown("""
-        <div class="wizard-card">
-            <div class="wizard-step-label">Step 1 of 2</div>
-            <div class="wizard-title">📎 Upload your resume</div>
-            <div class="wizard-sub">Upload your resume to predict your best matching job roles.</div>
+            <div class="wizard-sub">Upload your resume to predict your best matching job roles. Max 10 MB.</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1184,21 +1167,21 @@ elif page == "💼 Job Roles":
             label_visibility="collapsed",
             key="job_roles_uploader",
             help="Max 10 MB"
-    )
+        )
 
-    if uploaded is not None:
-        if uploaded.size > 10 * 1024 * 1024:
-            st.error("❌ File too large. Maximum size is 10 MB.")
-            st.stop()
+        if uploaded is not None:
+            if uploaded.size > 10 * 1024 * 1024:
+                st.error("❌ File too large. Maximum size is 10 MB.")
+                st.stop()
 
-        if (st.session_state.resume_text == ""
-                or st.session_state.resume_filename != uploaded.name):
-            with st.spinner("Reading your file..."):
-                st.session_state.resume_text = extract_text(uploaded)
-                st.session_state.resume_filename = uploaded.name
-            st.rerun()
+            if (st.session_state.resume_text == ""
+                    or st.session_state.resume_filename != uploaded.name):
+                with st.spinner("Reading your file..."):
+                    st.session_state.resume_text = extract_text(uploaded)
+                    st.session_state.resume_filename = uploaded.name
+                st.rerun()
 
-    st.stop()
+        st.stop()
 
     st.markdown(f"""
     <div class="pdf-preview" style="max-width:720px;margin:0 auto 18px">
