@@ -1157,7 +1157,7 @@ elif page == "💼 Job Roles":
         <div class="wizard-card">
             <div class="wizard-step-label">Step 1 of 2</div>
             <div class="wizard-title">📎 Upload your resume</div>
-            <div class="wizard-sub">Upload your resume to predict your best matching job roles. Max 10 MB.</div>
+            <div class="wizard-sub">Upload your resume to predict your best matching job roles</div>
         </div>
         """, unsafe_allow_html=True)
 
